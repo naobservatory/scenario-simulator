@@ -69,8 +69,6 @@ View the source to see how the simuation works; the
 <tr><th colspan=2>Pathogen
 <tr><td colspan=2>
   <input type=radio name=pathogen id=covid><label for=covid>SARS-CoV-2</label>
-  <input type=radio name=pathogen id=measles><label for=measles>Measles</label>
-  <input type=radio name=pathogen id=flu><label for=flu>Influenza</label>
   <input type=radio name=pathogen id=custom_pathogen><label for=custom_pathogen>Custom</label>
 <tr><td>Doubling time (days):<td><input type=text id=doubling_time value=3>
 <tr><td>Genome length (bp):<td><input type=text id=genome_length value=30,000>
@@ -79,7 +77,9 @@ View the source to see how the simuation works; the
   <input type=radio name=sampling id=wastewater><label for=wastewater>Wastewater</label>
   <input type=radio name=sampling id=nasal><label for=nasal>Nasal Swabs</label>
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
-<tr><td>RAi(1%):<td><input type=text id=ra_1pct value=1e-7>
+<tr><td>Shedding amounts, space-separated:<td><textarea
+rows=3 cols=40 id=shedding_values></textarea>
+  <tr><td>Shedding duration (days):<td><input type=text id=shedding_duration value=5>
 <tr><td>Low-quality fragments?<td><input id=low_quality type=checkbox>
 <tr><td>Sample population (people):<td><input type=text id=sample_population value=1,000>
 <tr><td>Sampling schedule:<td>
@@ -132,13 +132,13 @@ View the source to see how the simuation works; the
 <tr><td>Simulations:<td><input type=text id=simulations value=1,000>
 <tr>
 <tr><td>Simulation Label
-    <td><input type=text id=simulation_label>  
+    <td><input type=text id=simulation_label>
 </table>
 
 <p>
 
 <button id=run_simulation disabled>Run</button>
-<button id=clear class=hidden>Clear</button>  
+<button id=clear class=hidden>Clear</button>
 
 <div id=chart_div></div>
 
@@ -154,13 +154,11 @@ function simulate_one() {
   const growth_factor = Math.exp(r);
   let cumulative_incidence = 1/population;
 
-  // RAi(1%) is good for wastewater, but it isn't really the right
-  // statistic to use for small samples where it matters a lot whether
-  // we happen to sample anyone who is currently sick.  Arbitrarily
-  // divide the RA contribution of a newly sick person evenly across
-  // five days.
-  let detectable_days = 5;
-  let ra_sick = 100 * get_input(ra_1pct) * (7 / detectable_days);
+  let detectable_days = get_input(shedding_duration);
+  const ra_sicks = [];
+  for (const sv of shedding_values.value.split(" ")) {
+    ra_sicks.push(Number.parseFloat(sv));
+  }
 
   let n_min_observations = get_input(min_observations);
   let observations = 0;
@@ -194,9 +192,9 @@ function simulate_one() {
   // human virus and an artificial section. A typical short read is
   // not going to happen to hit this suspicious section. Very roughly,
   // the fraction of reads that do hit this section will be the read
-  // length as a fraction of the overall genome length. 
+  // length as a fraction of the overall genome length.
   let fraction_useful_reads = read_length_usable / get_input(genome_length);
-  
+
   let v_processing_delay_factor = Math.pow(growth_factor, get_input(processing_delay));
   let n_reads = get_input(sample_depth);
 
@@ -210,7 +208,7 @@ function simulate_one() {
   function probablistic_round(n) {
     // Probabilistic rounding: 3.6 should turn into 3 40% of the
     // time and 4 60% of the time.
-    
+
     if (Math.random() < (n - Math.floor(n))) {
       return Math.floor(n) + 1;
     } else {
@@ -237,11 +235,34 @@ function simulate_one() {
       }
 
       if (should_sequence[day_of_week]) {
+        let ra_sick = 0;
+        if (site_infos[site].sample_sick == 0) {
+          ra_sick = 0; // not technically true, but unused in this case.
+        } else if (ra_sicks.length == 1) {
+          // If there's only one option, no need to simulate.
+          ra_sick = ra_sicks[0];
+        } else if (site_infos[site].sample_sick > ra_sicks.length*3) {
+          // If we're sampling a lot of sick people, just average the
+          // possibilities instead of simulating, since simulating
+          // will be slow and not help much.
+          for (let i = 0; i < ra_sicks.length; i++) {
+            ra_sick += ra_sicks[i];
+          }
+          ra_sick = ra_sick / ra_sicks.length;
+        } else {
+          // Actually simulate.
+          for (let i = 0; i < site_infos[site].sample_sick; i++) {
+            ra_sick += ra_sicks[Math.floor(Math.random() * ra_sicks.length)];
+          }
+          ra_sick = ra_sick / site_infos[site].sample_sick;
+          console.log(ra_sick);
+        }
+
         const probability_read_is_useful =
               site_infos[site].sample_sick /
               site_infos[site].sample_total *
               ra_sick * fraction_useful_reads;
-        
+
         site_infos[site].sample_sick = 0;
         site_infos[site].sample_total = 0;
 
@@ -259,7 +280,7 @@ function simulate_one() {
   }
 }
 
-window.simulate_one = simulate_one; 
+window.simulate_one = simulate_one;
 
 </script>
 <script>
@@ -379,25 +400,20 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   }
 
-  measles.onclick = function() {
-    doubling_time.value = 1;
-    genome_length.value = "16,000";
-    set_custom_scenario();
-  }
-
-  flu.onclick = function() {
-    doubling_time.value = 7;
-    genome_length.value = "14,000";
-    set_custom_scenario();
-  }
-
   wastewater.onclick = function() {
     sample_weekly();
     sequence_weekly();
     sample_cost.value = "200";
     sample_population.value = "500,000";
-    ra_1pct.value = "1e-7";
     low_quality.checked = true;
+    // Started with 1e-7 RA_i(1%) for SARA-CoV-2 from Grimm et al 2023. Then:
+    //  * Scaled by 7/5 (reciprocal of shedding duration in weeks) to convert
+    //    from RA_i(1%), incidence, to RA_p(1%), prevalence.
+    //  * Scaled by 100 to convert from RA_p(1%) to RA_p(100%).
+    // Now it represents the relative abundance we'd expect if we sampled from
+    // a randomly selected sick person.
+    shedding_values.value = "1.4e-5";
+    shedding_duration.value = 5;
     set_custom_scenario();
   }
 
@@ -406,8 +422,12 @@ window.simulate_one = simulate_one;
     sequence_daily();
     sample_population.value = 100;
     sample_cost.value = get_input(sample_population) * 10;
-    ra_1pct.value = "4e-5";
     low_quality.checked = false;
+    // Lu et al 2021 Table S1
+    shedding_values.value =
+        "5e-06 1e-04 2e-04 3e-04 7e-04 8e-04 1e-03 6e-03 8e-03 " +
+        "1e-02 2e-02 3e-02 7e-02 4e-01 8e-01";
+    shedding_duration.value = 5;
     set_custom_scenario();
   }
 
@@ -469,7 +489,7 @@ function interpret_hash() {
       } else {
         const input = document.getElementById(key);
         if (input) {
-          if (   input.type == "checkbox" || input.type == "radio") {
+          if (input.type == "checkbox" || input.type == "radio") {
             if (value == "true") {
               input.checked = true;
             }
@@ -479,7 +499,7 @@ function interpret_hash() {
         }
       }
     }
-  );      
+  );
 }
 
 if (!window.location.hash || window.location.hash.length < 3) {
@@ -489,7 +509,7 @@ if (!window.location.hash || window.location.hash.length < 3) {
 }
 
 function update_hash() {
-  const params = new URLSearchParams();    
+  const params = new URLSearchParams();
   for (const input of document.querySelectorAll("input")) {
     if (input.type == "checkbox" || input.type == "radio") {
       if (input.checked) {
@@ -499,6 +519,7 @@ function update_hash() {
       params.append(input.id, input.value);
     }
   }
+  params.append("shedding_values", shedding_values.value);
   params.append("outcomes", JSON.stringify(saved_outcomes));
   window.location.hash = '#' + params.toString();
 }
@@ -530,16 +551,16 @@ update_cost();
 
 for (const input of document.querySelectorAll("input")) {
   input.onchange = function(e) {
-    if (input.type == "text" && input != simulation_label) {
-       validate(e.target);
+    if (input.type == "text" &&
+        input != simulation_label) {
+       validate(input);
     }
 
     if (input == doubling_time ||
         input == genome_length) {
       custom_pathogen.checked = true;
       custom_scenario.checked = true;
-    } else if (input == ra_1pct ||
-               input == low_quality ||
+    } else if (input == low_quality ||
                input == sample_population ||
                input == sample_cost) {
       custom_sampling.checked = true;
@@ -551,16 +572,35 @@ for (const input of document.querySelectorAll("input")) {
       custom_sequencing.checked = true;
       custom_scenario.checked = true;
     }
-    
+
     update_cost();
   }
 }
 
+shedding_values.onchange = function() {
+  validate(shedding_values);
+  custom_sampling.checked = true;
+  custom_scenario.checked = true;
+  update_cost();
+}
+
+function is_float(v) {
+  return !Number.isNaN(Number.parseFloat(v));
+}
+
 function validate(input) {
-  if (Number.isNaN(Number.parseFloat(input.value))) {
-    input.classList.add("invalid");
+  input.classList.remove("invalid");
+
+  if (input == shedding_values) {
+    for (const sv of input.value.split(" ")) {
+      if (!is_float(sv)) {
+        input.classList.add("invalid");
+      }
+    }
   } else {
-    input.classList.remove("invalid");
+    if (!is_float(input.value)) {
+      input.classList.add("invalid");
+    }
   }
 }
 
@@ -612,7 +652,7 @@ function draw_chart() {
       data[i+1].push(v);
     }
   }
-    
+
   let max_outcome_decimals = -Math.log10(max_outcome) -1;
   let vformat = "0";
   if (max_outcome_decimals > 0) {

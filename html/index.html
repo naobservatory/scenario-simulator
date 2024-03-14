@@ -23,34 +23,102 @@ input[type=text] {
 .hidden {
   display: none;
 }
+body {
+  max-width: 45em;
+}
 </style>
 
 <body>
 
-<h1>Sampling Simulator</h1>
-
-<i>draft</i>
+<h1>Sampling and Sequencing Simulator</h1>
 
 <p>
 
-This is a simulates different approaches to sequencing and sampling,
-giving estimates of the ongoing cost and the likely stage of
-detection.  I'm modeling a kind of static detection, where we sequence
-until we see a specific suspicious base, which could be anywhere along
-the genome.
+  This is a modeling tool for comparing different approaches to
+  metagenomic biosurveillance, with the goal of identifying a
+  novel <a href="https://www.gcsp.ch/publications/securing-civilisation-against-catastrophic-pandemics">stealth</a>
+  pathogen before too many people have become infected.
 
 <p>
 
-This is a very simple model, and while I've tried to make it realistic
-enough to capture key differences between scenarious it has a lot of
-guesses and is very rough.
+  While we've made the tool as realistic as possible, subject to the
+  caveats discussed below, a major consideration to keep in mind is
+  that many of the input parameter estimates are very rough.  Without
+  actually building at least a pilot version of a metagenomic
+  monitoring system it's quite possible that important inputs are
+  considerably werong.
 
 <p>
 
-View the source to see how the simuation works; the
-<code>simulate_one</code> function is where most of the logic is.
+  The sampling and detection model this tool implements is:
+
+  <ul>
+
+    <li><p>The epidemic starts with one person, and grows
+        exponentially with the specified doubling time.
+
+    <li><p>There are one more more sites, that each implement the
+        program in parallel.
+
+    <li><p>At each site, some form of sampling and sequencing are
+        performed on some weekly schedule.
+
+    <li><p>Each time we sample, we use a Poisson approximation of
+        binomial sampling to determine how many sick people we have in
+        the sample.
+
+    <li><p>Each time we sequence, we use a Poisson approximation of
+        binomial sampling to determine how many sequencing reads we
+        get for the pathogen of interest.
+
+    <li><p>We model detection as happening when you accumulate a
+        specified threshold number of sequencing reads that match a
+        specific portion of the target genome.  This is intended to
+        approximate a static implementation of genetic engineering
+        detection.
+
+    <li><p>We assume sequencing reads are equally likely to come from
+        any part of the pathogen's genome.
+
+    <li><p>You can see the actual implementation of the tool by
+        reading the <code>simulate_one</code> function in the source
+        of this page or
+        <a href="https://github.com/naobservatory/scenario-simulator/blob/main/html/index.html">on
+          github</a>.
+  </ul>
 
 <p>
+
+  There are several main places where this tool does not include
+  considerations we know are significant:
+
+<p>
+
+  <ul>
+    <li><p>Part of the benefit multiple sites should be that in
+        reality we expect an epidemic to be farther ahead in some
+        places than others.  This tool assumes the epidemic grows
+        equally quickly at each site.
+
+    <li><p>Real epidemics don't grow perfectly exponentially.
+        Especially early on they can be 'bursty'.  We don't simulate
+        this.
+
+    <li><p>Real epidemics fall below exponential, even if they're
+        spreading unnoticed, once there's an appreciable number of
+        succeptible people.  This tool assumes we're still in the
+        early portion of the curve, where exponential is a good
+        approximation, because we're really only concerned with
+        scenarios that would let us flag a pandemic before too many
+        people had been infected.
+   </ul>
+
+<p>
+
+Choose a base secenario, modify any parameters you're interested in,
+and click "Run".  If you share the full URL that will let anyone
+loading that URL see (a) your last set of parameters and (b) any saved
+runs.
 
 <hr>
 
@@ -64,10 +132,10 @@ View the source to see how the simuation works; the
       >Wastewater NGS $1M/y</label>
   <input type=radio name=scenario id=scenario_ns_1m><label for=scenario_ns_1m
       >Nasal Nanopore $1M/y</label>
-  <input type=radio name=scenario id=scenario_ns_250><label for=scenario_ns_250
-      >Nasal Nanopore $250k/y</label>
-  <input type=radio name=scenario id=scenario_ns_150><label for=scenario_ns_150
-      >Nasal Nanopore $150k/y</label>
+  <input type=radio name=scenario id=scenario_ns_500><label for=scenario_ns_500
+      >Nasal Nanopore $500k/y</label>
+  <input type=radio name=scenario id=scenario_ns_290><label for=scenario_ns_290
+      >Nasal Nanopore $290k/y</label>
   <input type=radio name=scenario id=custom_scenario><label for=custom_scenario
       >Custom</label>
 <tr><th colspan=2>Pathogen
@@ -344,7 +412,6 @@ window.simulate_one = simulate_one;
     processing_delay.value=4;
     sample_daily();
     sequence_daily();
-    sample_cost.value = "200";
     set_custom_scenario();
   };
 
@@ -425,7 +492,7 @@ window.simulate_one = simulate_one;
     sample_daily();
     sequence_daily();
     sample_population.value = 100;
-    sample_cost.value = get_input(sample_population) * 10;
+    sample_cost.value = get_input(sample_population) * 8;
     low_quality.checked = false;
     // Lu et al 2021 Table S1
     shedding_values.value =
@@ -456,14 +523,14 @@ window.simulate_one = simulate_one;
     nasal.checked = true;
     nanopore.onclick();
     nanopore.checked = true;
-    sites.value = 4;
+    sites.value = 2;
     min_observations.value = 2;
     simulation_label.value = "Nasal Nanopore $1M";
     scenario_ns_1m.checked = true;
     update_hash();
   }
 
-  scenario_ns_250.onclick = function() {
+  scenario_ns_500.onclick = function() {
     covid.onclick();
     covid.checked = true;
     nasal.onclick();
@@ -472,12 +539,12 @@ window.simulate_one = simulate_one;
     nanopore.checked = true;
     sites.value = 1;
     min_observations.value = 2;
-    simulation_label.value = "Nasal Nanopore $250k";
-    scenario_ns_250.checked = true;
+    simulation_label.value = "Nasal Nanopore $500k";
+    scenario_ns_500.checked = true;
     update_hash();
   }
 
-  scenario_ns_150.onclick = function() {
+  scenario_ns_290.onclick = function() {
     covid.onclick();
     covid.checked = true;
     nasal.onclick();
@@ -486,8 +553,8 @@ window.simulate_one = simulate_one;
     nanopore.checked = true;
     sites.value = 1;
     min_observations.value = 2;
-    simulation_label.value = "Nasal Nanopore $150k";
-    scenario_ns_150.checked = true;
+    simulation_label.value = "Nasal Nanopore $290k";
+    scenario_ns_290.checked = true;
     sampling_t.checked = false;
     sampling_r.checked = false;
     sequencing_t.checked = false;

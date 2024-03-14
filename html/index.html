@@ -96,10 +96,18 @@ View the source to see how the simuation works; the
 <tr><td>Cost per sample (dollars):<td><input type=text id=sample_cost value=100>
 <tr><th colspan=2>Sequencing
 <tr><td colspan=2>
-  <input type=radio name=sequencing id=nx10b><label for=nx10b>NovaSeq X 10B</label>
-  <input type=radio name=sequencing id=nanopore><label for=nanopore>Nanopore MinION</label>
-  <input type=radio name=sequencing id=academic><label for=academic>University NovaSeq 6000 S4</label>
-  <input type=radio name=sequencing id=custom_sequencing><label for=custom_sequencing>Custom</label>
+  <table>
+  <tr>
+  <td><input type=radio name=sequencing id=nx10b><label for=nx10b>NovaSeq X 10B</label>
+  <td><input type=radio name=sequencing id=n6ksp3><label for=n6ksp3>NovaSeq 6000 SP 2x150</label>
+  <td><input type=radio name=sequencing id=n6ksp5><label for=n6ksp5>NovaSeq 6000 SP 2x250</label>
+  <tr>
+  <td><input type=radio name=sequencing id=aviti><label for=aviti>Element Aviti 2x150</label>
+  <td><input type=radio name=sequencing id=nanopore><label for=nanopore>Nanopore MinION</label>
+  <td><input type=radio name=sequencing id=academic><label for=academic>University NovaSeq 6000 S4</label>
+  <tr>
+  <td><input type=radio name=sequencing id=custom_sequencing><label for=custom_sequencing>Custom</label>
+  </table>
   <tr><td>Sequencing run depth<br>&nbsp;&nbsp;(reads per run per site):<td><input type=text id=sample_depth value=1e8>
 <tr><td>Read length (bp):<td><input type=text id=read_length value=150>
 <tr><td>Cost per sequencing run (dollars):<td><input type=text id=run_cost value=13000>
@@ -255,11 +263,37 @@ window.simulate_one = simulate_one;
     run_simulation.innerText = "Run " + simulation_label.value;
   }
 
-  nanopore.onclick = function() {
-    read_length.value="10,000";
-    run_cost.value=450;
-    sample_depth.value="2e6";
-    processing_delay.value=3;
+  function sample_weekly() {
+    sampling_m.checked = false;
+    sampling_t.checked = false;
+    sampling_w.checked = true;
+    sampling_r.checked = false;
+    sampling_f.checked = false;
+    sampling_s.checked = false;
+    sampling_u.checked = false;
+  }
+
+  function sample_daily() {
+    sampling_m.checked = true;
+    sampling_t.checked = true;
+    sampling_w.checked = true;
+    sampling_r.checked = true;
+    sampling_f.checked = true;
+    sampling_s.checked = false;
+    sampling_u.checked = false;
+  }
+
+  function sequence_weekly() {
+    sequencing_m.checked = false;
+    sequencing_t.checked = false;
+    sequencing_w.checked = true;
+    sequencing_r.checked = false;
+    sequencing_f.checked = false;
+    sequencing_s.checked = false;
+    sequencing_u.checked = false;
+  }
+
+  function sequence_daily() {
     sequencing_m.checked = true;
     sequencing_t.checked = true;
     sequencing_w.checked = true;
@@ -267,25 +301,62 @@ window.simulate_one = simulate_one;
     sequencing_f.checked = true;
     sequencing_s.checked = false;
     sequencing_u.checked = false;
-    sample_cost.value = "200";
+  }
+
+  function set_custom_scenario() {
     custom_scenario.checked = true;
     update_cost();
+  }
+
+  nanopore.onclick = function() {
+    read_length.value="10,000";
+    run_cost.value=450;
+    sample_depth.value="2e6";
+    processing_delay.value=4;
+    sample_daily();
+    sequence_daily();
+    sample_cost.value = "200";
+    set_custom_scenario();
   };
 
   nx10b.onclick = function() {
     read_length.value=300;
     run_cost.value="13,000";
     sample_depth.value="1e10";
-    processing_delay.value=2;
-    sequencing_m.checked = false;
-    sequencing_t.checked = false;
-    sequencing_w.checked = false;
-    sequencing_r.checked = false;
-    sequencing_f.checked = true;
-    sequencing_s.checked = false;
-    sequencing_u.checked = false;
-    custom_scenario.checked = true;
-    update_cost();
+    processing_delay.value=4;
+    sample_weekly();
+    sequence_weekly();
+    set_custom_scenario();
+  };
+
+  n6ksp3.onclick = function() {
+    read_length.value=300;
+    run_cost.value="5,300";
+    sample_depth.value="7.3e8";
+    processing_delay.value=4;
+    sample_daily();
+    sequence_daily();
+    set_custom_scenario();
+  };
+
+  n6ksp5.onclick = function() {
+    read_length.value=500;
+    run_cost.value="7,400";
+    sample_depth.value="7.3e8";
+    processing_delay.value=4;
+    sample_daily();
+    sequence_daily();
+    set_custom_scenario();
+  };
+
+  aviti.onclick = function() {
+    read_length.value=300;
+    run_cost.value="4,000";
+    sample_depth.value="8e8";
+    processing_delay.value=4;
+    sample_daily();
+    sequence_daily();
+    set_custom_scenario();
   };
 
   academic.onclick = function() {
@@ -293,68 +364,47 @@ window.simulate_one = simulate_one;
     run_cost.value="26,000";
     sample_depth.value="9e9";
     processing_delay.value=4*7;
-    sequencing_m.checked = false;
-    sequencing_t.checked = false;
-    sequencing_w.checked = false;
-    sequencing_r.checked = false;
-    sequencing_f.checked = true;
-    sequencing_s.checked = false;
-    sequencing_u.checked = false;
-    custom_scenario.checked = true;
-    update_cost();
+    sample_weekly();
+    sequence_weekly();
+    set_custom_scenario();
   };
 
   covid.onclick = function() {
     doubling_time.value = 3;
     genome_length.value = "30,000";
-    custom_scenario.checked = true;
-    update_cost();
+    set_custom_scenario();
   }
 
   measles.onclick = function() {
     doubling_time.value = 1;
     genome_length.value = "16,000";
-    custom_scenario.checked = true;
-    update_cost();
+    set_custom_scenario();
   }
 
   flu.onclick = function() {
     doubling_time.value = 7;
     genome_length.value = "14,000";
-    custom_scenario.checked = true;
-    update_cost();
+    set_custom_scenario();
   }
 
   wastewater.onclick = function() {
-    sampling_m.checked = true;
-    sampling_t.checked = true;
-    sampling_w.checked = true;
-    sampling_r.checked = true;
-    sampling_f.checked = true;
-    sampling_s.checked = false;
-    sampling_u.checked = false;
+    sample_weekly();
+    sequence_weekly();
     sample_cost.value = "200";
     sample_population.value = "500,000";
     ra_1pct.value = "1e-7";
     low_quality.checked = true;
-    custom_scenario.checked = true;
-    update_cost();
+    set_custom_scenario();
   }
 
   nasal.onclick = function() {
-    sampling_m.checked = true;
-    sampling_t.checked = true;
-    sampling_w.checked = true;
-    sampling_r.checked = true;
-    sampling_f.checked = true;
-    sampling_s.checked = false;
-    sampling_u.checked = false;
+    sample_daily();
+    sequence_daily();
     sample_population.value = 100;
     sample_cost.value = get_input(sample_population) * 10;
     ra_1pct.value = "4e-5";
     low_quality.checked = false;
-    custom_scenario.checked = true;
-    update_cost();
+    set_custom_scenario();
   }
 
   scenario_ww.onclick = function() {

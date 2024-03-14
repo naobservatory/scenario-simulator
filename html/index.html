@@ -444,8 +444,8 @@ window.simulate_one = simulate_one;
   }
 
   reset.onclick = function() {
-    scenario_ww.onclick();
     clear.onclick();
+    scenario_ww.onclick();
   }
 
 function is_checked(checkbox_prefix, day_of_week) {
@@ -459,17 +459,23 @@ function is_checked(checkbox_prefix, day_of_week) {
   return document.getElementById(checkbox_prefix + checkbox_suffix).checked;
 }
 
+let saved_outcomes = [];
+
 function interpret_hash() {
   new URLSearchParams(window.location.hash.substring(1)).forEach(
     (value, key) => {
-      const input = document.getElementById(key);
-      if (input) {
-        if (input.type == "checkbox" || input.type == "radio") {
-          if (value == "true") {
-            input.checked = true;
+      if (key == "outcomes") {
+        saved_outcomes = JSON.parse(value);
+      } else {
+        const input = document.getElementById(key);
+        if (input) {
+          if (   input.type == "checkbox" || input.type == "radio") {
+            if (value == "true") {
+              input.checked = true;
+            }
+          } else {
+            input.value = value;
           }
-        } else {
-          input.value = value;
         }
       }
     }
@@ -493,6 +499,7 @@ function update_hash() {
       params.append(input.id, input.value);
     }
   }
+  params.append("outcomes", JSON.stringify(saved_outcomes));
   window.location.hash = '#' + params.toString();
 }
 
@@ -562,16 +569,16 @@ function get_input(input) {
 }
 
 let chart = null;
-const saved_outcomes = [];
 clear.onclick = function() {
   saved_outcomes.length = 0;
   if (chart) {
     chart.clearChart();
   }
   table_element.innerHTML = "";
+  update_hash();
 }
 
-function draw_chart(outcomes) {
+function add_to_chart(outcomes) {
   const percentile_outcomes = [];
   for (let i = 0; i < 100; i++) {
     percentile_outcomes.push(outcomes[Math.round(i/100 * outcomes.length)]);
@@ -581,6 +588,11 @@ function draw_chart(outcomes) {
     label: simulation_label.value,
     cost: cost.value,
   });
+  update_hash();
+  draw_chart();
+}
+
+function draw_chart() {
   clear.classList.remove("hidden");
 
   const data = [["Percentile"]];
@@ -665,7 +677,7 @@ function simulate() {
       outcomes.push(window.simulate_one());
     }
     outcomes.sort((a,b) => a-b);
-    draw_chart(outcomes);
+    add_to_chart(outcomes);
     run_simulation.disabled = false;
   }, 1);
 }
@@ -677,6 +689,9 @@ run_simulation.onclick = simulate;
   google.charts.load('current', {'packages':['corechart']});
 google.charts.setOnLoadCallback(function() {
   run_simulation.disabled = false;
+  if (saved_outcomes.length) {
+    draw_chart();
+  }
 });
 
 </script>

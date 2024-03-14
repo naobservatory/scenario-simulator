@@ -124,6 +124,7 @@ View the source to see how the simuation works; the
   </table>
 <tr><td>Processing delay (days):<td><input type=text id=processing_delay value=1>
 <tr><th colspan=2>Global
+<tr><td>Minimum Observations:<td><input type=text id=min_observations value=2>
 <tr><td>Sites:<td><input type=text id=sites value=1>
 <tr><td>Overhead (percentage)<td><input type=text id=overhead value=50>
 <tr><td>Annual Cost (dollars):<td><input disabled type=text id=cost value=>
@@ -144,7 +145,6 @@ View the source to see how the simuation works; the
 <table id=table_element border=1 cellpadding=5></table>
 
 <script type=module>
-//import binomial from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-binomial@esm/index.mjs';
 import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';
 
 function simulate_one() {
@@ -161,6 +161,9 @@ function simulate_one() {
   // five days.
   let detectable_days = 5;
   let ra_sick = 100 * get_input(ra_1pct) * (7 / detectable_days);
+
+  let n_min_observations = get_input(min_observations);
+  let observations = 0;
 
   let n_sites = get_input(sites);
   const site_infos = [];
@@ -228,7 +231,6 @@ function simulate_one() {
           individual_probability_sick += effective_incidence;
           effective_incidence /= growth_factor;
         }
-        //const n_sick = binomial(n_sample_population, individual_probability_sick);
         const n_sick = poisson(n_sample_population * individual_probability_sick);
         site_infos[site].sample_sick += n_sick;
         site_infos[site].sample_total += n_sample_population;
@@ -242,10 +244,12 @@ function simulate_one() {
         
         site_infos[site].sample_sick = 0;
         site_infos[site].sample_total = 0;
-        
-        //if (binomial(n_reads, probability_read_is_useful) > 0) {
-        if (poisson(n_reads * probability_read_is_useful) > 0) {
-          return cumulative_incidence * v_processing_delay_factor;
+
+        if (probability_read_is_useful > 0) {
+          observations += poisson(n_reads * probability_read_is_useful);
+          if (observations >= n_min_observations) {
+            return cumulative_incidence * v_processing_delay_factor;
+          }
         }
       }
     }
@@ -415,8 +419,10 @@ window.simulate_one = simulate_one;
     nx10b.onclick();
     nx10b.checked = true;
     sites.value = 1;
+    min_observations.value = 2;
     simulation_label.value = "Covid WW Short";
     scenario_ww.checked = true;
+    update_hash();
   }
 
   scenario_ns.onclick = function() {
@@ -427,8 +433,10 @@ window.simulate_one = simulate_one;
     nanopore.onclick();
     nanopore.checked = true;
     sites.value = 4;
+    min_observations.value = 2;
     simulation_label.value = "Covid Nasal Long";
     scenario_ns.checked = true;
+    update_hash();
   }
 
   custom_scenario.onclick = function() {

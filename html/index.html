@@ -554,11 +554,13 @@ window.simulate_one = simulate_one;
     sites.value = 1;
     min_observations.value = 2;
     simulation_label.value = "Nasal Nanopore $290k";
-    scenario_ns_290.checked = true;
+    sequence_daily();
+    sample_daily();
     sampling_t.checked = false;
     sampling_r.checked = false;
     sequencing_t.checked = false;
     sequencing_r.checked = false;
+    scenario_ns_290.checked = true;
     update_hash();
   }
 
@@ -569,6 +571,7 @@ window.simulate_one = simulate_one;
   reset.onclick = function() {
     clear.onclick();
     scenario_ww.onclick();
+    document.location.hash = "";
   }
 
 function is_checked(checkbox_prefix, day_of_week) {
@@ -593,9 +596,7 @@ function interpret_hash() {
         const input = document.getElementById(key);
         if (input) {
           if (input.type == "checkbox" || input.type == "radio") {
-            if (value == "true") {
-              input.checked = true;
-            }
+            input.checked = value == "true";
           } else {
             input.value = value;
           }
@@ -615,9 +616,7 @@ function update_hash() {
   const params = new URLSearchParams();
   for (const input of document.querySelectorAll("input")) {
     if (input.type == "checkbox" || input.type == "radio") {
-      if (input.checked) {
-        params.append(input.id, "true");
-      }
+      params.append(input.id, input.checked ? "true" : "false");
     } else {
       params.append(input.id, input.value);
     }

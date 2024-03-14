@@ -1,0 +1,622 @@
+<html>
+<title>Sample Simulator</title>
+
+<style>
+#sampling_schedule td,
+#sequencing_schedule td {
+  text-align: center;
+}
+.invalid {
+  border: 1px solid red;
+}
+#chart_div {
+  width: 900px;
+  height: 500px;
+  max-width: 100%;
+}
+th {
+  background: #eee;
+}
+input[type=text] {
+  width: 100%;
+}
+.hidden {
+  display: none;
+}
+</style>
+
+<body>
+
+<h1>Sampling Simulator</h1>
+
+<i>draft</i>
+
+<p>
+
+This is a simulates different approaches to sequencing and sampling,
+giving estimates of the ongoing cost and the likely stage of
+detection.  I'm modeling a kind of static detection, where we sequence
+until we see a specific suspicious base, which could be anywhere along
+the genome.
+
+<p>
+
+This is a very simple model, and while I've tried to make it realistic
+enough to capture key differences between scenarious it has a lot of
+guesses and is very rough.
+
+<p>
+
+View the source to see how the simuation works; the
+<code>simulate_one</code> function is where most of the logic is.
+
+<p>
+
+<hr>
+
+<p>
+
+<button id=reset>Reset</button>
+<table>
+<tr><th colspan=2>Scenario
+<tr><td colspan=2>
+  <input type=radio name=scenario id=scenario_ww><label for=scenario_ww
+      >Covid Wastewater Short Read</label>
+  <input type=radio name=scenario id=scenario_ns><label for=scenario_ns
+      >Covid Nasal Swabs Long Read</label>
+  <input type=radio name=scenario id=custom_scenario><label for=custom_scenario
+      >Custom</label>
+<tr><th colspan=2>Pathogen
+<tr><td colspan=2>
+  <input type=radio name=pathogen id=covid><label for=covid>SARS-CoV-2</label>
+  <input type=radio name=pathogen id=measles><label for=measles>Measles</label>
+  <input type=radio name=pathogen id=flu><label for=flu>Influenza</label>
+  <input type=radio name=pathogen id=custom_pathogen><label for=custom_pathogen>Custom</label>
+<tr><td>Doubling time (days):<td><input type=text id=doubling_time value=3>
+<tr><td>Genome length (bp):<td><input type=text id=genome_length value=30,000>
+<tr><th colspan=2>Sampling
+<tr><td colspan=2>
+  <input type=radio name=sampling id=wastewater><label for=wastewater>Wastewater</label>
+  <input type=radio name=sampling id=nasal><label for=nasal>Nasal Swabs</label>
+  <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
+<tr><td>RAi(1%):<td><input type=text id=ra_1pct value=1e-7>
+<tr><td>Low-quality fragments?<td><input id=low_quality type=checkbox>
+<tr><td>Sample population (people):<td><input type=text id=sample_population value=1,000>
+<tr><td>Sampling schedule:<td>
+  <table id=sampling_schedule>
+  <tr><td>M<td>T<td>W<td>R<td>F<td>S<td>U
+  <tr><td><input type=checkbox id=sampling_m checked>
+      <td><input type=checkbox id=sampling_t checked>
+      <td><input type=checkbox id=sampling_w checked>
+      <td><input type=checkbox id=sampling_r checked>
+      <td><input type=checkbox id=sampling_f checked>
+      <td><input type=checkbox id=sampling_s>
+      <td><input type=checkbox id=sampling_u>
+  </table>
+<tr><td>Cost per sample (dollars):<td><input type=text id=sample_cost value=100>
+<tr><th colspan=2>Sequencing
+<tr><td colspan=2>
+  <input type=radio name=sequencing id=nx10b><label for=nx10b>NovaSeq X 10B</label>
+  <input type=radio name=sequencing id=nanopore><label for=nanopore>Nanopore MinION</label>
+  <input type=radio name=sequencing id=academic><label for=academic>University NovaSeq 6000 S4</label>
+  <input type=radio name=sequencing id=custom_sequencing><label for=custom_sequencing>Custom</label>
+  <tr><td>Sequencing run depth<br>&nbsp;&nbsp;(reads per run per site):<td><input type=text id=sample_depth value=1e8>
+<tr><td>Read length (bp):<td><input type=text id=read_length value=150>
+<tr><td>Cost per sequencing run (dollars):<td><input type=text id=run_cost value=13000>
+<tr><td>Sequencing schedule:<td>
+  <table id=sequencing_schedule>
+  <tr><td>M<td>T<td>W<td>R<td>F<td>S<td>U
+  <tr><td><input type=checkbox id=sequencing_m>
+      <td><input type=checkbox id=sequencing_t>
+      <td><input type=checkbox id=sequencing_w>
+      <td><input type=checkbox id=sequencing_r>
+      <td><input type=checkbox id=sequencing_f checked>
+      <td><input type=checkbox id=sequencing_s>
+      <td><input type=checkbox id=sequencing_u>
+  </table>
+<tr><td>Processing delay (days):<td><input type=text id=processing_delay value=1>
+<tr><th colspan=2>Global
+<tr><td>Sites:<td><input type=text id=sites value=1>
+<tr><td>Overhead (percentage)<td><input type=text id=overhead value=50>
+<tr><td>Annual Cost (dollars):<td><input disabled type=text id=cost value=>
+<tr><th colspan=2>Simulation
+<tr><td>Simulations:<td><input type=text id=simulations value=1,000>
+<tr>
+<tr><td>Simulation Label
+    <td><input type=text id=simulation_label>  
+</table>
+
+<p>
+
+<button id=run_simulation disabled>Run</button>
+<button id=clear class=hidden>Clear</button>  
+
+<div id=chart_div></div>
+
+<table id=table_element border=1 cellpadding=5></table>
+
+<script type=module>
+//import binomial from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-binomial@esm/index.mjs';
+import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';
+
+function simulate_one() {
+  let day = 0;
+  let population = 1e8;
+  const r = Math.log(2)/get_input(doubling_time);
+  const growth_factor = Math.exp(r);
+  let cumulative_incidence = 1/population;
+
+  // RAi(1%) is good for wastewater, but it isn't really the right
+  // statistic to use for small samples where it matters a lot whether
+  // we happen to sample anyone who is currently sick.  Arbitrarily
+  // divide the RA contribution of a newly sick person evenly across
+  // five days.
+  let detectable_days = 5;
+  let ra_sick = 100 * get_input(ra_1pct) * (7 / detectable_days);
+
+  let n_sites = get_input(sites);
+  const site_infos = [];
+  for (let site = 0; site < n_sites; site++) {
+    site_infos.push({
+      // Since we last sequenced, we've built up some samples for
+      // sequencing.  How many sick people are in that sample, out of
+      // how many total people?
+      sample_sick: 0,
+      sample_total: 0,
+      // Which day the epidemic starts relative to the sampling and
+      // sequencing schedules is arbitrary, but does have a large
+      // effect on the range of outcomes: if you're sequencing weekly
+      // then the luckiest timing will flag it about a week before the
+      // unluckiest.  Model the epidemic as observed by each site as
+      // starting on a random day of the week.
+      day_offset: Math.floor(Math.random() * 7)})
+  }
+
+  let n_sample_population = get_input(sample_population)
+  let read_length_usable = get_input(read_length);
+  if (low_quality.checked) {
+    read_length_usable = Math.min(read_length_usable, 120);
+  }
+
+  // The detection model here is that there is some small section of
+  // the target genome that's suspicious, perhaps a junction between a
+  // human virus and an artificial section. A typical short read is
+  // not going to happen to hit this suspicious section. Very roughly,
+  // the fraction of reads that do hit this section will be the read
+  // length as a fraction of the overall genome length. 
+  let fraction_useful_reads = read_length_usable / get_input(genome_length);
+  
+  let v_processing_delay_factor = Math.pow(growth_factor, get_input(processing_delay));
+  let n_reads = get_input(sample_depth);
+
+  const should_sample = [];
+  const should_sequence = [];
+  for (let day_of_week = 0; day_of_week < 7; day_of_week++) {
+    should_sample.push(is_checked("sampling_", day_of_week));
+    should_sequence.push(is_checked("sequencing_", day_of_week));
+  }
+
+  function probablistic_round(n) {
+    // Probabilistic rounding: 3.6 should turn into 3 40% of the
+    // time and 4 60% of the time.
+    
+    if (Math.random() < (n - Math.floor(n))) {
+      return Math.floor(n) + 1;
+    } else {
+      return Math.floor(n);
+    }
+  }
+  while (true) {
+    day++;
+    cumulative_incidence *= growth_factor;
+
+    for (let site = 0; site < n_sites; site++) {
+      const day_of_week = (day + site_infos[site].day_offset) % 7;
+      if (should_sample[day_of_week]) {
+        const daily_incidence = cumulative_incidence * r;
+        let individual_probability_sick = 0;
+        let effective_incidence = daily_incidence;
+        for (let i = 0; i < detectable_days; i++) {
+          individual_probability_sick += effective_incidence;
+          effective_incidence /= growth_factor;
+        }
+        //const n_sick = binomial(n_sample_population, individual_probability_sick);
+        const n_sick = poisson(n_sample_population * individual_probability_sick);
+        site_infos[site].sample_sick += n_sick;
+        site_infos[site].sample_total += n_sample_population;
+      }
+
+      if (should_sequence[day_of_week]) {
+        const probability_read_is_useful =
+              site_infos[site].sample_sick /
+              site_infos[site].sample_total *
+              ra_sick * fraction_useful_reads;
+        
+        site_infos[site].sample_sick = 0;
+        site_infos[site].sample_total = 0;
+        
+        //if (binomial(n_reads, probability_read_is_useful) > 0) {
+        if (poisson(n_reads * probability_read_is_useful) > 0) {
+          return cumulative_incidence * v_processing_delay_factor;
+        }
+      }
+    }
+    if (cumulative_incidence > 1) {
+      return 1;
+    }
+  }
+}
+
+window.simulate_one = simulate_one; 
+
+</script>
+<script>
+  simulation_label.onkeyup = function() {
+    run_simulation.innerText = "Run " + simulation_label.value;
+  }
+
+  nanopore.onclick = function() {
+    read_length.value="10,000";
+    run_cost.value=450;
+    sample_depth.value="2e6";
+    processing_delay.value=3;
+    sequencing_m.checked = true;
+    sequencing_t.checked = true;
+    sequencing_w.checked = true;
+    sequencing_r.checked = true;
+    sequencing_f.checked = true;
+    sequencing_s.checked = false;
+    sequencing_u.checked = false;
+    sample_cost.value = "200";
+    custom_scenario.checked = true;
+    update_cost();
+  };
+
+  nx10b.onclick = function() {
+    read_length.value=300;
+    run_cost.value="13,000";
+    sample_depth.value="1e10";
+    processing_delay.value=2;
+    sequencing_m.checked = false;
+    sequencing_t.checked = false;
+    sequencing_w.checked = false;
+    sequencing_r.checked = false;
+    sequencing_f.checked = true;
+    sequencing_s.checked = false;
+    sequencing_u.checked = false;
+    custom_scenario.checked = true;
+    update_cost();
+  };
+
+  academic.onclick = function() {
+    read_length.value=300;
+    run_cost.value="26,000";
+    sample_depth.value="9e9";
+    processing_delay.value=4*7;
+    sequencing_m.checked = false;
+    sequencing_t.checked = false;
+    sequencing_w.checked = false;
+    sequencing_r.checked = false;
+    sequencing_f.checked = true;
+    sequencing_s.checked = false;
+    sequencing_u.checked = false;
+    custom_scenario.checked = true;
+    update_cost();
+  };
+
+  covid.onclick = function() {
+    doubling_time.value = 3;
+    genome_length.value = "30,000";
+    custom_scenario.checked = true;
+    update_cost();
+  }
+
+  measles.onclick = function() {
+    doubling_time.value = 1;
+    genome_length.value = "16,000";
+    custom_scenario.checked = true;
+    update_cost();
+  }
+
+  flu.onclick = function() {
+    doubling_time.value = 7;
+    genome_length.value = "14,000";
+    custom_scenario.checked = true;
+    update_cost();
+  }
+
+  wastewater.onclick = function() {
+    sampling_m.checked = true;
+    sampling_t.checked = true;
+    sampling_w.checked = true;
+    sampling_r.checked = true;
+    sampling_f.checked = true;
+    sampling_s.checked = false;
+    sampling_u.checked = false;
+    sample_cost.value = "200";
+    sample_population.value = "500,000";
+    ra_1pct.value = "1e-7";
+    low_quality.checked = true;
+    custom_scenario.checked = true;
+    update_cost();
+  }
+
+  nasal.onclick = function() {
+    sampling_m.checked = true;
+    sampling_t.checked = true;
+    sampling_w.checked = true;
+    sampling_r.checked = true;
+    sampling_f.checked = true;
+    sampling_s.checked = false;
+    sampling_u.checked = false;
+    sample_population.value = 100;
+    sample_cost.value = get_input(sample_population) * 10;
+    ra_1pct.value = "4e-5";
+    low_quality.checked = false;
+    custom_scenario.checked = true;
+    update_cost();
+  }
+
+  scenario_ww.onclick = function() {
+    covid.onclick();
+    covid.checked = true;
+    wastewater.onclick();
+    wastewater.checked = true;
+    nx10b.onclick();
+    nx10b.checked = true;
+    sites.value = 1;
+    simulation_label.value = "Covid WW Short";
+    scenario_ww.checked = true;
+  }
+
+  scenario_ns.onclick = function() {
+    covid.onclick();
+    covid.checked = true;
+    nasal.onclick();
+    nasal.checked = true;
+    nanopore.onclick();
+    nanopore.checked = true;
+    sites.value = 4;
+    simulation_label.value = "Covid Nasal Long";
+    scenario_ns.checked = true;
+  }
+
+  custom_scenario.onclick = function() {
+    simulation_label.value = "Custom";
+  }
+
+  reset.onclick = function() {
+    scenario_ww.onclick();
+    clear.onclick();
+  }
+
+function is_checked(checkbox_prefix, day_of_week) {
+  const checkbox_suffix = {0: "m",
+                           1: "t",
+                           2: "w",
+                           3: "r",
+                           4: "f",
+                           5: "s",
+                           6: "u"}[day_of_week];
+  return document.getElementById(checkbox_prefix + checkbox_suffix).checked;
+}
+
+function interpret_hash() {
+  new URLSearchParams(window.location.hash.substring(1)).forEach(
+    (value, key) => {
+      const input = document.getElementById(key);
+      if (input) {
+        if (input.type == "checkbox" || input.type == "radio") {
+          if (value == "true") {
+            input.checked = true;
+          }
+        } else {
+          input.value = value;
+        }
+      }
+    }
+  );      
+}
+
+if (!window.location.hash || window.location.hash.length < 3) {
+  scenario_ww.onclick();
+} else {
+  interpret_hash();
+}
+
+function update_hash() {
+  const params = new URLSearchParams();    
+  for (const input of document.querySelectorAll("input")) {
+    if (input.type == "checkbox" || input.type == "radio") {
+      if (input.checked) {
+        params.append(input.id, "true");
+      }
+    } else {
+      params.append(input.id, input.value);
+    }
+  }
+  window.location.hash = '#' + params.toString();
+}
+
+function update_cost() {
+  let n_samples_weekly = 0;
+  for (let i = 0; i < 7; i++) {
+    n_samples_weekly += is_checked("sampling_", i);
+  }
+
+  let n_sequences_weekly = 0;
+  for (let i = 0; i < 7; i++) {
+    n_sequences_weekly += is_checked("sequencing_", i);;
+  }
+
+  cost.value = new Intl.NumberFormat(
+    'en-US', {style: 'currency',
+              currency: 'USD',
+              maximumSignificantDigits: 2}).format(
+      get_input(sites) *
+        (1 + (get_input(overhead) / 100)) *
+        52 *
+        (n_samples_weekly * get_input(sample_cost) +
+         n_sequences_weekly * get_input(run_cost)));
+
+  update_hash();
+}
+update_cost();
+
+for (const input of document.querySelectorAll("input")) {
+  input.onchange = function(e) {
+    if (input.type == "text" && input != simulation_label) {
+       validate(e.target);
+    }
+
+    if (input == doubling_time ||
+        input == genome_length) {
+      custom_pathogen.checked = true;
+      custom_scenario.checked = true;
+    } else if (input == ra_1pct ||
+               input == low_quality ||
+               input == sample_population ||
+               input == sample_cost) {
+      custom_sampling.checked = true;
+      custom_scenario.checked = true;
+    } else if (input == sample_depth ||
+               input == read_length ||
+               input == run_cost ||
+               input == processing_delay) {
+      custom_sequencing.checked = true;
+      custom_scenario.checked = true;
+    }
+    
+    update_cost();
+  }
+}
+
+function validate(input) {
+  if (Number.isNaN(Number.parseFloat(input.value))) {
+    input.classList.add("invalid");
+  } else {
+    input.classList.remove("invalid");
+  }
+}
+
+function get_input(input) {
+  return Number.parseFloat(input.value.replace(/,/g, ""));
+}
+
+let chart = null;
+const saved_outcomes = [];
+clear.onclick = function() {
+  saved_outcomes.length = 0;
+  if (chart) {
+    chart.clearChart();
+  }
+  table_element.innerHTML = "";
+}
+
+function draw_chart(outcomes) {
+  const percentile_outcomes = [];
+  for (let i = 0; i < 100; i++) {
+    percentile_outcomes.push(outcomes[Math.round(i/100 * outcomes.length)]);
+  }
+  saved_outcomes.push({
+    percentile_outcomes: percentile_outcomes,
+    label: simulation_label.value,
+  });
+  clear.classList.remove("hidden");
+
+  const data = [["Percentile"]];
+  for (let i = 0; i < 100; i++) {
+    data.push([i/100]);
+  }
+
+  let max_outcome = 0;
+  for (const saved_outcome of saved_outcomes) {
+    data[0].push(saved_outcome.label);
+    for (let i = 0; i < 100; i++) {
+      let v = saved_outcome.percentile_outcomes[i];
+      max_outcome = Math.max(v, max_outcome);
+      if (v > 0.3) {
+        v = 0;
+      }
+      data[i+1].push(v);
+    }
+  }
+    
+  let max_outcome_decimals = -Math.log10(max_outcome) -1;
+  let vformat = "0";
+  if (max_outcome_decimals > 0) {
+    vformat += ".";
+    while (max_outcome_decimals > 0) {
+      vformat += "0";
+      max_outcome_decimals--;
+    }
+  }
+  vformat += "%";
+
+  chart = new google.visualization.LineChart(chart_div);
+  chart.draw(
+    google.visualization.arrayToDataTable(data),
+    {
+      title: "Cumulative Incidence at Detection",
+      legend: {position: 'bottom'},
+      vAxis: {format: vformat,
+              title: "Cumulative Incidence at Detection"},
+      hAxis: {format:'#%',
+              title: "Percentile"},
+    });
+
+
+  table_element.innerHTML = "";
+  const table_header_tr = document.createElement("tr");
+  for (const table_header_val of ["Scenario", "25th", "50th", "75th", "90th"]) {
+    const table_header_th = document.createElement("th");
+    table_header_th.innerText = table_header_val;
+    table_header_tr.appendChild(table_header_th);
+  }
+  table_element.appendChild(table_header_tr);
+
+  for (const saved_outcome of saved_outcomes) {
+    const scenario_tr = document.createElement("tr");
+    const scenario_th = document.createElement("th");
+    scenario_th.innerText = saved_outcome.label;
+    scenario_tr.appendChild(scenario_th);
+
+    for (const percentile of [25, 50, 75, 90]) {
+      const scenario_td = document.createElement("td");
+      scenario_td.innerText = new Intl.NumberFormat(
+        'en-US', {style: 'percent',
+                  maximumSignificantDigits: 2}).format(
+                    saved_outcome.percentile_outcomes[percentile]);
+      scenario_tr.appendChild(scenario_td);
+    }
+    table_element.appendChild(scenario_tr);
+  }
+}
+
+function simulate() {
+  run_simulation.disabled = true;
+  window.setTimeout(function() {
+    const outcomes = [];
+    for (let i = 0; i < get_input(simulations); i++) {
+      outcomes.push(window.simulate_one());
+    }
+    outcomes.sort((a,b) => a-b);
+    draw_chart(outcomes);
+    run_simulation.disabled = false;
+  }, 1);
+}
+
+run_simulation.onclick = simulate;
+</script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+  google.charts.load('current', {'packages':['corechart']});
+google.charts.setOnLoadCallback(function() {
+  run_simulation.disabled = false;
+});
+
+</script>
+
+
+</body>
+</html>

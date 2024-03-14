@@ -61,9 +61,13 @@ View the source to see how the simuation works; the
 <tr><th colspan=2>Scenario
 <tr><td colspan=2>
   <input type=radio name=scenario id=scenario_ww><label for=scenario_ww
-      >Covid Wastewater Short Read</label>
-  <input type=radio name=scenario id=scenario_ns><label for=scenario_ns
-      >Covid Nasal Swabs Long Read</label>
+      >Wastewater NGS $1M/y</label>
+  <input type=radio name=scenario id=scenario_ns_1m><label for=scenario_ns_1m
+      >Nasal Nanopore $1M/y</label>
+  <input type=radio name=scenario id=scenario_ns_250><label for=scenario_ns_250
+      >Nasal Nanopore $250k/y</label>
+  <input type=radio name=scenario id=scenario_ns_150><label for=scenario_ns_150
+      >Nasal Nanopore $150k/y</label>
   <input type=radio name=scenario id=custom_scenario><label for=custom_scenario
       >Custom</label>
 <tr><th colspan=2>Pathogen
@@ -440,12 +444,12 @@ window.simulate_one = simulate_one;
     nx10b.checked = true;
     sites.value = 1;
     min_observations.value = 2;
-    simulation_label.value = "Covid WW Short";
+    simulation_label.value = "Wastewater NGS $1M";
     scenario_ww.checked = true;
     update_hash();
   }
 
-  scenario_ns.onclick = function() {
+  scenario_ns_1m.onclick = function() {
     covid.onclick();
     covid.checked = true;
     nasal.onclick();
@@ -454,8 +458,40 @@ window.simulate_one = simulate_one;
     nanopore.checked = true;
     sites.value = 4;
     min_observations.value = 2;
-    simulation_label.value = "Covid Nasal Long";
-    scenario_ns.checked = true;
+    simulation_label.value = "Nasal Nanopore $1M";
+    scenario_ns_1m.checked = true;
+    update_hash();
+  }
+
+  scenario_ns_250.onclick = function() {
+    covid.onclick();
+    covid.checked = true;
+    nasal.onclick();
+    nasal.checked = true;
+    nanopore.onclick();
+    nanopore.checked = true;
+    sites.value = 1;
+    min_observations.value = 2;
+    simulation_label.value = "Nasal Nanopore $250k";
+    scenario_ns_250.checked = true;
+    update_hash();
+  }
+
+  scenario_ns_150.onclick = function() {
+    covid.onclick();
+    covid.checked = true;
+    nasal.onclick();
+    nasal.checked = true;
+    nanopore.onclick();
+    nanopore.checked = true;
+    sites.value = 1;
+    min_observations.value = 2;
+    simulation_label.value = "Nasal Nanopore $150k";
+    scenario_ns_150.checked = true;
+    sampling_t.checked = false;
+    sampling_r.checked = false;
+    sequencing_t.checked = false;
+    sequencing_r.checked = false;
     update_hash();
   }
 

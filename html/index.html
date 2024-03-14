@@ -26,6 +26,10 @@ input[type=text] {
 body {
   max-width: 45em;
 }
+.note {
+  padding-left: 1em;
+  font-style: italic;
+}
 </style>
 
 <body>
@@ -115,12 +119,15 @@ body {
 
 <p>
 
-Choose a base secenario, modify any parameters you're interested in,
-and click "Run".  If you share the full URL that will let anyone
-loading that URL see (a) your last set of parameters and (b) any saved
-runs.
+  Please treat this tool as a robot that will scribble on the back of
+  an envelope for you, not a precise estimator!
 
 <hr>
+
+  To use the tool, choose a base secenario, modify any parameters
+  you're interested in, and click "Run".  If you share the full URL
+  that will let anyone loading that URL see (a) your last set of
+  parameters and (b) any saved runs.
 
 <p>
 
@@ -149,11 +156,28 @@ runs.
   <input type=radio name=sampling id=wastewater><label for=wastewater>Wastewater</label>
   <input type=radio name=sampling id=nasal><label for=nasal>Nasal Swabs</label>
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
-<tr><td>Shedding amounts, space-separated:<td><textarea
-rows=3 cols=40 id=shedding_values></textarea>
-  <tr><td>Shedding duration (days):<td><input type=text id=shedding_duration value=5>
+<tr><td>Shedding amount:<td><textarea
+                                                rows=3 cols=40 id=shedding_values></textarea>
+<tr><td colspan=2 class=note>If you ran metagenomic sequencing on a sample
+that was from just a single infected person, what fraction of
+sequencing reads would be from the pathogen?  This could be a single
+number to model all infected people as shedding an equal amount, or
+multiple space-separated numbers to represent a set of equally likely
+possible shedding amounts.
+<tr><td>Shedding duration (days):<td><input type=text id=shedding_duration value=5>
+<tr><td colspan=2 class=note>Once someone is infected, how many days do they
+shed for?  This is a simplified model where we assume people shed
+equally throughout their infection.
 <tr><td>Low-quality fragments?<td><input id=low_quality type=checkbox>
+<tr><td colspan=2 class=note>When sequencing wastewater the nucleic acid
+fragments tend to be pretty torn up by the hostile environment, making
+it difficult to get much value from long-read sequencing.  If this box
+is checked we assume that sequencing reads won't be longer than 120bp
+even if you're using a sequencing machine capable of producing longer
+ones when given good material.
 <tr><td>Sample population (people):<td><input type=text id=sample_population value=1,000>
+<tr><td colspan=2 class=note>Each time you go out and sample people,
+how many people are contributing?
 <tr><td>Sampling schedule:<td>
   <table id=sampling_schedule>
   <tr><td>M<td>T<td>W<td>R<td>F<td>S<td>U
@@ -180,8 +204,12 @@ rows=3 cols=40 id=shedding_values></textarea>
   <tr>
   <td><input type=radio name=sequencing id=custom_sequencing><label for=custom_sequencing>Custom</label>
   </table>
-  <tr><td>Sequencing run depth<br>&nbsp;&nbsp;(reads per run per site):<td><input type=text id=sample_depth value=1e8>
+  <tr><td>Sequencing run depth (reads):<td><input type=text id=sample_depth value=1e8>
+<tr><td colspan=2 class=note>Each time you run your sequencer, how many reads does it produce?
 <tr><td>Read length (bp):<td><input type=text id=read_length value=150>
+<tr><td colspan=2 class=note>How long are the reads your sequencer
+generates? Note that actual reads will be lower if the sample is low
+quality; see "low-quality fragments?" above.
 <tr><td>Cost per sequencing run (dollars):<td><input type=text id=run_cost value=13000>
 <tr><td>Sequencing schedule:<td>
   <table id=sequencing_schedule>
@@ -195,16 +223,34 @@ rows=3 cols=40 id=shedding_values></textarea>
       <td><input type=checkbox id=sequencing_u>
   </table>
 <tr><td>Processing delay (days):<td><input type=text id=processing_delay value=1>
+<tr><td colspan=2 class=note>How long does it take from collecting a
+sample until you have the bioinformatic results?  Remember to include
+lab time to prepare the sample for sequencing, waiting for your sample
+to get a turn on the sequencer, time on the sequencer, and
+bioinformatic processing.
 <tr><th colspan=2>Global
 <tr><td>Minimum Observations:<td><input type=text id=min_observations value=2>
+<tr><td colspan=2 class=note>This model simulates detection as
+happening when a particular portion of the genome has been observed
+some number of times.  Using a higher number here corresponds to
+requiring more certainty before raising an alarm.
 <tr><td>Sites:<td><input type=text id=sites value=1>
+<tr><td colspan=2 class=note>In this model you can parallelize across
+multiple sites, each of which works exactly the same way.  Note that
+we don't model the most obvious benefit of multiple sites, where each
+one has a chance of being a location where the epidemic is farther
+ahead.
 <tr><td>Overhead (percentage)<td><input type=text id=overhead value=50>
+<tr><td colspan=2 class=note>Assume costs are higher than the inputs
+specified above by this fixed percentage.
 <tr><td>Annual Cost (dollars):<td><input disabled type=text id=cost value=>
 <tr><th colspan=2>Simulation
 <tr><td>Simulations:<td><input type=text id=simulations value=1,000>
+<tr><td colspan=2 class=note>We will run the simulation the specified
+number of times, and display the results in a chart below.
 <tr>
-<tr><td>Simulation Label
-    <td><input type=text id=simulation_label>
+<tr><td>Simulation Label<td><input type=text id=simulation_label>
+<tr><td colspan=2 class=note>Use a descriptive label here, which will appear in your chart and on the outcomes table.
 </table>
 
 <p>

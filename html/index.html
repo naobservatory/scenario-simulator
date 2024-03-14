@@ -579,6 +579,7 @@ function draw_chart(outcomes) {
   saved_outcomes.push({
     percentile_outcomes: percentile_outcomes,
     label: simulation_label.value,
+    cost: cost.value,
   });
   clear.classList.remove("hidden");
 
@@ -626,7 +627,7 @@ function draw_chart(outcomes) {
 
   table_element.innerHTML = "";
   const table_header_tr = document.createElement("tr");
-  for (const table_header_val of ["Scenario", "25th", "50th", "75th", "90th"]) {
+  for (const table_header_val of ["Scenario", "Cost", "25th", "50th", "75th", "90th"]) {
     const table_header_th = document.createElement("th");
     table_header_th.innerText = table_header_val;
     table_header_tr.appendChild(table_header_th);
@@ -638,6 +639,11 @@ function draw_chart(outcomes) {
     const scenario_th = document.createElement("th");
     scenario_th.innerText = saved_outcome.label;
     scenario_tr.appendChild(scenario_th);
+
+    const scenario_cost_td = document.createElement("td");
+    scenario_cost_td.innerText = saved_outcome.cost;
+    scenario_cost_td.align = "right";
+    scenario_tr.appendChild(scenario_cost_td);
 
     for (const percentile of [25, 50, 75, 90]) {
       const scenario_td = document.createElement("td");

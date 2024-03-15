@@ -84,6 +84,25 @@ body {
     <li><p>We assume sequencing reads are equally likely to come from
         any part of the pathogen's genome.
 
+    <li><p>We simulate many times (1,000 by default) and chart the
+        range of cumulative incidences we observed.
+
+    <li><p>Any outcomes where we see a cumulative incidence over 30%
+        we mark as a failure by showing a "0" on the chart.  The
+        simulation isn't correct for high cumulative incidence anyway,
+        because it only models the initial exponential stage of the
+        epidemic.
+
+    <li><p>Values with a "CV" attached allow you to specify the coefficient
+        of variation.  These apply normally distributed noise, and a
+        new bias is selecgted for each are applied to each input once
+        per simulation.  In the case of the shedding amount the noise
+        is lognormally distributed, and if you have entered multiple
+        shedding values they're all biased by the same factor. Higher
+        CVs increase the variance: low percentile outputs become even
+        more optimistic and high percentile outputs even more
+        pessimistic.
+
     <li><p>You can see the actual implementation of the tool by
         reading the <code>simulate_one</code> function in the source
         of this page or
@@ -110,8 +129,8 @@ body {
 
     <li><p>Real epidemics fall below exponential, even if they're
         spreading unnoticed, once there's an appreciable number of
-        succeptible people.  This tool assumes we're still in the
-        early portion of the curve, where exponential is a good
+        succeptible people.  This tool only simulates the early
+        portion of the curve, where exponential is a good
         approximation, because we're really only concerned with
         scenarios that would let us flag a pandemic before too many
         people had been infected.
@@ -133,8 +152,8 @@ body {
 
 <button id=reset>Reset</button>
 <table>
-<tr><th colspan=2>Scenario
-<tr><td colspan=2>
+<tr><th colspan=4>Scenario
+<tr><td colspan=4>
   <input type=radio name=scenario id=scenario_ww><label for=scenario_ww
       >Wastewater NGS $1M/y</label>
   <input type=radio name=scenario id=scenario_ns_1m><label for=scenario_ns_1m
@@ -145,38 +164,44 @@ body {
       >Nasal Nanopore $290k/y</label>
   <input type=radio name=scenario id=custom_scenario><label for=custom_scenario
       >Custom</label>
-<tr><th colspan=2>Pathogen
-<tr><td colspan=2>
+<tr><th colspan=4>Pathogen
+<tr><td colspan=4>
   <input type=radio name=pathogen id=covid><label for=covid>SARS-CoV-2</label>
   <input type=radio name=pathogen id=custom_pathogen><label for=custom_pathogen>Custom</label>
-<tr><td>Doubling time (days):<td><input type=text id=doubling_time value=3>
-<tr><td>Genome length (bp):<td><input type=text id=genome_length value=30,000>
-<tr><th colspan=2>Sampling
-<tr><td colspan=2>
+  <tr><td>Doubling time (days):<td><input type=text id=doubling_time>
+      <td align=right>CV:<td><input type=text id=cv_doubling_time>
+<tr><td>Genome length (bp):<td><input type=text id=genome_length>
+<tr><th colspan=4>Sampling
+<tr><td colspan=4>
   <input type=radio name=sampling id=wastewater><label for=wastewater>Wastewater</label>
   <input type=radio name=sampling id=nasal><label for=nasal>Nasal Swabs</label>
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
-<tr><td>Shedding amount:<td><textarea
-                                                rows=3 cols=40 id=shedding_values></textarea>
-<tr><td colspan=2 class=note>If you ran metagenomic sequencing on a sample
+  <tr><td>Shedding amount:
+    <td><textarea rows=3 cols=40 id=shedding_values></textarea>
+    <td align=right>CV(log):<td><input type=text id=cv_log_shedding_values>
+
+<tr><td colspan=4 class=note>If you ran metagenomic sequencing on a sample
 that was from just a single infected person, what fraction of
 sequencing reads would be from the pathogen?  This could be a single
 number to model all infected people as shedding an equal amount, or
 multiple space-separated numbers to represent a set of equally likely
 possible shedding amounts.
-<tr><td>Shedding duration (days):<td><input type=text id=shedding_duration value=5>
-<tr><td colspan=2 class=note>Once someone is infected, how many days do they
+<tr><td>Shedding duration (days):
+    <td><input type=text id=shedding_duration value=5>
+    <td align=right>CV:<td><input type=text id=cv_shedding_duration>
+<tr><td colspan=4 class=note>Once someone is infected, how many days do they
 shed for?  This is a simplified model where we assume people shed
 equally throughout their infection.
 <tr><td>Low-quality fragments?<td><input id=low_quality type=checkbox>
-<tr><td colspan=2 class=note>When sequencing wastewater the nucleic acid
+<tr><td colspan=4 class=note>When sequencing wastewater the nucleic acid
 fragments tend to be pretty torn up by the hostile environment, making
 it difficult to get much value from long-read sequencing.  If this box
 is checked we assume that sequencing reads won't be longer than 120bp
 even if you're using a sequencing machine capable of producing longer
 ones when given good material.
-<tr><td>Sample population (people):<td><input type=text id=sample_population value=1,000>
-<tr><td colspan=2 class=note>Each time you go out and sample people,
+<tr><td>Sample population (people):
+    <td><input type=text id=sample_population value=1,000>
+<tr><td colspan=4 class=note>Each time you go out and sample people,
 how many people are contributing?
 <tr><td>Sampling schedule:<td>
   <table id=sampling_schedule>
@@ -190,8 +215,8 @@ how many people are contributing?
       <td><input type=checkbox id=sampling_u>
   </table>
 <tr><td>Cost per sample (dollars):<td><input type=text id=sample_cost value=100>
-<tr><th colspan=2>Sequencing
-<tr><td colspan=2>
+<tr><th colspan=4>Sequencing
+<tr><td colspan=4>
   <table>
   <tr>
   <td><input type=radio name=sequencing id=nx10b><label for=nx10b>NovaSeq X 10B</label>
@@ -204,10 +229,12 @@ how many people are contributing?
   <tr>
   <td><input type=radio name=sequencing id=custom_sequencing><label for=custom_sequencing>Custom</label>
   </table>
-  <tr><td>Sequencing run depth (reads):<td><input type=text id=sample_depth value=1e8>
-<tr><td colspan=2 class=note>Each time you run your sequencer, how many reads does it produce?
-<tr><td>Read length (bp):<td><input type=text id=read_length value=150>
-<tr><td colspan=2 class=note>How long are the reads your sequencer
+  <tr><td>Sequencing run depth (reads):
+       <td><input type=text id=sample_depth value=1e8>
+<tr><td colspan=4 class=note>Each time you run your sequencer, how many reads does it produce?
+<tr><td>Read length (bp):
+  <td><input type=text id=read_length value=150>
+<tr><td colspan=4 class=note>How long are the reads your sequencer
 generates? Note that actual reads will be lower if the sample is low
 quality; see "low-quality fragments?" above.
 <tr><td>Cost per sequencing run (dollars):<td><input type=text id=run_cost value=13000>
@@ -222,35 +249,37 @@ quality; see "low-quality fragments?" above.
       <td><input type=checkbox id=sequencing_s>
       <td><input type=checkbox id=sequencing_u>
   </table>
-<tr><td>Processing delay (days):<td><input type=text id=processing_delay value=1>
-<tr><td colspan=2 class=note>How long does it take from collecting a
+<tr><td>Processing delay (days):
+  <td><input type=text id=processing_delay value=1>
+  <td align=right>CV:<td><input type=text id=cv_processing_delay>
+<tr><td colspan=4 class=note>How long does it take from collecting a
 sample until you have the bioinformatic results?  Remember to include
 lab time to prepare the sample for sequencing, waiting for your sample
 to get a turn on the sequencer, time on the sequencer, and
 bioinformatic processing.
-<tr><th colspan=2>Global
+<tr><th colspan=4>Global
 <tr><td>Minimum Observations:<td><input type=text id=min_observations value=2>
-<tr><td colspan=2 class=note>This model simulates detection as
+<tr><td colspan=4 class=note>This model simulates detection as
 happening when a particular portion of the genome has been observed
 some number of times.  Using a higher number here corresponds to
 requiring more certainty before raising an alarm.
 <tr><td>Sites:<td><input type=text id=sites value=1>
-<tr><td colspan=2 class=note>In this model you can parallelize across
+<tr><td colspan=4 class=note>In this model you can parallelize across
 multiple sites, each of which works exactly the same way.  Note that
 we don't model the most obvious benefit of multiple sites, where each
 one has a chance of being a location where the epidemic is farther
 ahead.
 <tr><td>Overhead (percentage)<td><input type=text id=overhead value=50>
-<tr><td colspan=2 class=note>Assume costs are higher than the inputs
+<tr><td colspan=4 class=note>Assume costs are higher than the inputs
 specified above by this fixed percentage.
 <tr><td>Annual Cost (dollars):<td><input disabled type=text id=cost value=>
-<tr><th colspan=2>Simulation
+<tr><th colspan=4>Simulation
 <tr><td>Simulations:<td><input type=text id=simulations value=1,000>
-<tr><td colspan=2 class=note>We will run the simulation the specified
+<tr><td colspan=4 class=note>We will run the simulation the specified
 number of times, and display the results in a chart below.
 <tr>
 <tr><td>Simulation Label<td><input type=text id=simulation_label>
-<tr><td colspan=2 class=note>Use a descriptive label here, which will appear in your chart and on the outcomes table.
+<tr><td colspan=4 class=note>Use a descriptive label here, which will appear in your chart and on the outcomes table.
 </table>
 
 <p>
@@ -264,19 +293,51 @@ number of times, and display the results in a chart below.
 
 <script type=module>
 import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';
+import normal from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-normal@esm/index.mjs';
+
+function get_input_cv(input, input_cv) {
+  const mean = get_input(input);
+  const cv = get_input(input_cv) / 100;
+
+  if (cv < 0.1) {
+    return mean;
+  }
+
+  const stdev = cv * mean;
+  return normal(mean, stdev);
+}
+
+function get_inputs_log_cv(input, input_log_cv) {
+  const means = get_inputs(input);
+  const cv_of_log = get_input(input_log_cv) / 100;
+  if (cv_of_log < 0.01) {
+    return means;
+  }
+
+  // Don't want to bias each mean independently, bias all of them by
+  // the CV together.  Also do it in log space, since we want log
+  // normal here.
+
+  const stdev_of_log = cv_of_log;
+  const bias_of_log = normal(1, stdev_of_log);
+
+  const adjusted_means = [];
+  for (const mean of means) {
+    const log_mean = Math.log(mean);
+    adjusted_means.push(Math.exp(log_mean * bias_of_log));
+  }
+  return adjusted_means;
+}
 
 function simulate_one() {
   let day = 0;
   let population = 1e8;
-  const r = Math.log(2)/get_input(doubling_time);
+  const r = Math.log(2)/get_input_cv(doubling_time, cv_doubling_time);
   const growth_factor = Math.exp(r);
   let cumulative_incidence = 1/population;
 
-  let detectable_days = get_input(shedding_duration);
-  const ra_sicks = [];
-  for (const sv of shedding_values.value.split(" ")) {
-    ra_sicks.push(Number.parseFloat(sv));
-  }
+  let detectable_days = get_input_cv(shedding_duration, cv_shedding_duration);
+  const ra_sicks = get_inputs_log_cv(shedding_values, cv_log_shedding_values);
 
   let n_min_observations = get_input(min_observations);
   let observations = 0;
@@ -313,7 +374,8 @@ function simulate_one() {
   // length as a fraction of the overall genome length.
   let fraction_useful_reads = read_length_usable / get_input(genome_length);
 
-  let v_processing_delay_factor = Math.pow(growth_factor, get_input(processing_delay));
+  let v_processing_delay_factor = Math.pow(
+    growth_factor, get_input_cv(processing_delay, cv_processing_delay));
   let n_reads = get_input(sample_depth);
 
   const should_sample = [];
@@ -456,6 +518,7 @@ window.simulate_one = simulate_one;
     run_cost.value=450;
     sample_depth.value="2e6";
     processing_delay.value=4;
+    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -466,6 +529,7 @@ window.simulate_one = simulate_one;
     run_cost.value="13,000";
     sample_depth.value="1e10";
     processing_delay.value=4;
+    cv_processing_delay.value="30%";
     sample_weekly();
     sequence_weekly();
     set_custom_scenario();
@@ -476,6 +540,7 @@ window.simulate_one = simulate_one;
     run_cost.value="5,300";
     sample_depth.value="7.3e8";
     processing_delay.value=4;
+    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -486,6 +551,7 @@ window.simulate_one = simulate_one;
     run_cost.value="7,400";
     sample_depth.value="7.3e8";
     processing_delay.value=4;
+    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -496,6 +562,7 @@ window.simulate_one = simulate_one;
     run_cost.value="4,000";
     sample_depth.value="8e8";
     processing_delay.value=4;
+    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -506,6 +573,7 @@ window.simulate_one = simulate_one;
     run_cost.value="26,000";
     sample_depth.value="9e9";
     processing_delay.value=4*7;
+    cv_processing_delay.value="30%";
     sample_weekly();
     sequence_weekly();
     set_custom_scenario();
@@ -513,6 +581,7 @@ window.simulate_one = simulate_one;
 
   covid.onclick = function() {
     doubling_time.value = 3;
+    cv_doubling_time.value = "10%";
     genome_length.value = "30,000";
     set_custom_scenario();
   }
@@ -530,7 +599,9 @@ window.simulate_one = simulate_one;
     // Now it represents the relative abundance we'd expect if we sampled from
     // a randomly selected sick person.
     shedding_values.value = "1.4e-5";
+    cv_log_shedding_values.value = "10%";
     shedding_duration.value = 5;
+    cv_shedding_duration.value = "30%";
     set_custom_scenario();
   }
 
@@ -544,7 +615,9 @@ window.simulate_one = simulate_one;
     shedding_values.value =
         "5e-06 1e-04 2e-04 3e-04 7e-04 8e-04 1e-03 6e-03 8e-03 " +
         "1e-02 2e-02 3e-02 7e-02 4e-01 8e-01";
+    cv_log_shedding_values.value = "5%";
     shedding_duration.value = 5;
+    cv_shedding_duration.value = "30%";
     set_custom_scenario();
   }
 
@@ -750,6 +823,14 @@ function validate(input) {
       input.classList.add("invalid");
     }
   }
+}
+
+function get_inputs(input) {
+  const vs = [];
+  for (const v of input.value.split(" ")) {
+    vs.push(Number.parseFloat(v));
+  }
+  return vs;
 }
 
 function get_input(input) {

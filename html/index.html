@@ -108,6 +108,46 @@ body {
         of this page or
         <a href="https://github.com/naobservatory/scenario-simulator/blob/main/html/index.html">on
           github</a>.
+
+
+    <li><p>Shedding estimates are derived from:
+        <dl>
+          <dt>SARS-CoV-2 Wastewater:
+            <dd>We started
+            with <a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v1.full">Grimm
+            et al. 2023</a>'s mean weekly <code>RA_i(1%)</code> estimate of
+            1.3e-7 for SARS-CoV-2 in municipal wastewater, assuming
+            sampling and sequencing similar
+            to <a href="https://pubmed.ncbi.nlm.nih.gov/34550753/">Rothman
+            et al. 2021</a>. Then we used a guess that people might
+            shed for five days to convert that to a <code>RA_p(1%)</code>
+            (scaling by 7/5) and then scaled by 100x to get the relative
+            abundance contribution of an individual infected person.
+          <dt>SARS-CoV Nasal/Throat:
+             <dd>We took relative abundance values
+             from <a href="https://www.nature.com/articles/s41421-021-00248-3">Lu
+             et al. 2021</a>'s table S1, which gives the SARS-CoV-2
+             sequencing results from sixteen metagenomic samples
+             collected from patients hospitalized with COVID-19
+             (<a href="https://www.jefftk.com/p/sequencing-swabs">blog
+             post</a>).  Each value is treated as equally likely, and
+             the simulator selects one at random each time it models
+             an infected person.
+          <dt>Influenza A Wastewater:
+            <dd>We followed the same approach we detail above for
+            SARS-CoV-2 Wastewater, except instead of a reanalysis of
+            Rothman et al. 2021 it uses unpublished data collected by
+            an NAO partner in the 2023-2024 flu season that found a
+            mean <code>RA_i(1%)</code> of 1.7e-8.
+          <dt>Influenza A Nasal/Throat:
+             <dd>We took relative abundance values
+             from <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6935926/">Lewandowski
+             et al. 2020</a> Figure 4 (n=39).  As with SARS-CoV
+             Nasal/Throat above, we treat each outcome as equally
+             likely. Note that this isn't an ideal source, since they
+             chose which samples to sequence by trying to cover their
+             full observed Ct range.
+        </dl>
   </ul>
 
 <p>
@@ -175,7 +215,7 @@ body {
 <tr><th colspan=4>Sampling
 <tr><td colspan=4>
   <input type=radio name=sampling id=wastewater><label for=wastewater>Wastewater</label>
-  <input type=radio name=sampling id=nasal><label for=nasal>Nasal Swabs</label>
+  <input type=radio name=sampling id=nasal><label for=nasal>Nasal and/or Throat Swabs</label>
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
   <tr><td>Shedding amount:
     <td><textarea rows=5 cols=40 id=shedding_values></textarea>

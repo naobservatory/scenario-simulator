@@ -569,6 +569,9 @@ window.simulate_one = simulate_one;
 
   function set_custom_scenario() {
     custom_scenario.checked = true;
+    if (simulation_label.value == auto_label) {
+      simulation_label.value = "[set simulation label]";
+    }
     update_cost();
   }
 
@@ -708,6 +711,7 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   }
 
+  let auto_label = "";
   scenario_ww_c.onclick = function() {
     covid.onclick();
     covid.checked = true;
@@ -718,6 +722,7 @@ window.simulate_one = simulate_one;
     sites.value = 1;
     min_observations.value = 2;
     simulation_label.value = "Covid WW NGS $1M";
+    auto_label = simulation_label.value;
     scenario_ww_c.checked = true;
     set_shedding_values();
     update_hash();
@@ -733,6 +738,7 @@ window.simulate_one = simulate_one;
     sites.value = 2;
     min_observations.value = 2;
     simulation_label.value = "Covid Nasal Nanopore $1M";
+    auto_label = simulation_label.value;
     scenario_ns_c_1m.checked = true;
     set_shedding_values();
     update_hash();
@@ -748,6 +754,7 @@ window.simulate_one = simulate_one;
     sites.value = 1;
     min_observations.value = 2;
     simulation_label.value = "Flu WW NGS $1M";
+    auto_label = simulation_label.value;
     scenario_ww_f.checked = true;
     set_shedding_values();
     update_hash();
@@ -763,6 +770,7 @@ window.simulate_one = simulate_one;
     sites.value = 2;
     min_observations.value = 2;
     simulation_label.value = "Flu Nasal Nanopore $1M";
+    auto_label = simulation_label.value;
     scenario_ns_f_1m.checked = true;
     set_shedding_values();
     update_hash();
@@ -808,6 +816,7 @@ function interpret_hash() {
       }
     }
   );
+  auto_label = simulation_label.value;
 }
 
 if (!window.location.hash || window.location.hash.length < 3) {

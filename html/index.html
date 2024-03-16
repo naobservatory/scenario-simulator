@@ -154,19 +154,20 @@ body {
 <table>
 <tr><th colspan=4>Scenario
 <tr><td colspan=4>
-  <input type=radio name=scenario id=scenario_ww><label for=scenario_ww
-      >Wastewater NGS $1M/y</label>
-  <input type=radio name=scenario id=scenario_ns_1m><label for=scenario_ns_1m
-      >Nasal Nanopore $1M/y</label>
-  <input type=radio name=scenario id=scenario_ns_500><label for=scenario_ns_500
-      >Nasal Nanopore $500k/y</label>
-  <input type=radio name=scenario id=scenario_ns_290><label for=scenario_ns_290
-      >Nasal Nanopore $290k/y</label>
+  <input type=radio name=scenario id=scenario_ww_c><label for=scenario_ww_c
+      >Covid WW NGS $1M/y</label>
+  <input type=radio name=scenario id=scenario_ns_c_1m><label for=scenario_ns_c_1m
+      >Covid Nasal Nanopore $1M/y</label>
+  <input type=radio name=scenario id=scenario_ww_f><label for=scenario_ww_f
+      >Flu WW NGS $1M/y</label>
+  <input type=radio name=scenario id=scenario_ns_f_1m><label for=scenario_ns_f_1m
+      >Flu Nasal Nanopore $1M/y</label>
   <input type=radio name=scenario id=custom_scenario><label for=custom_scenario
       >Custom</label>
 <tr><th colspan=4>Pathogen
 <tr><td colspan=4>
   <input type=radio name=pathogen id=covid><label for=covid>SARS-CoV-2</label>
+  <input type=radio name=pathogen id=flu><label for=flu>Influenza A</label>
   <input type=radio name=pathogen id=custom_pathogen><label for=custom_pathogen>Custom</label>
   <tr><td>Doubling time (days):<td><input type=text id=doubling_time>
       <td align=right>CV:<td><input type=text id=cv_doubling_time>
@@ -177,7 +178,7 @@ body {
   <input type=radio name=sampling id=nasal><label for=nasal>Nasal Swabs</label>
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
   <tr><td>Shedding amount:
-    <td><textarea rows=3 cols=40 id=shedding_values></textarea>
+    <td><textarea rows=5 cols=40 id=shedding_values></textarea>
     <td align=right>CV(log):<td><input type=text id=cv_log_shedding_values>
 
 <tr><td colspan=4 class=note>If you ran metagenomic sequencing on a sample
@@ -516,7 +517,7 @@ window.simulate_one = simulate_one;
   nanopore.onclick = function() {
     read_length.value="10,000";
     run_cost.value=450;
-    sample_depth.value="2e6";
+    sample_depth.value="8e5";
     processing_delay.value=4;
     cv_processing_delay.value="30%";
     sample_daily();
@@ -579,29 +580,57 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   };
 
+  function set_shedding_values() {
+    if (covid.checked) {
+      if (wastewater.checked) {
+        // Started with 1.3e-7 RA_i(1%) for SARA-CoV-2 from Grimm et al 2023.
+        // Then:
+        //  * Scaled by 7/5 (reciprocal of shedding duration in weeks)
+        //    to convert from RA_i(1%), incidence, to RA_p(1%),
+        //    prevalence.
+        //  * Scaled by 100 to convert from RA_p(1%) to RA_p(100%).
+        // Now it represents the relative abundance we'd expect if we
+        // sampled from a randomly selected sick person.
+        shedding_values.value = "1.8e-5";
+      } else if (nasal.checked) {
+        // Lu et al 2021 Table S1
+        shedding_values.value =
+          "5e-06 1e-04 2e-04 3e-04 7e-04 8e-04 1e-03 6e-03 8e-03 " +
+          "1e-02 2e-02 3e-02 7e-02 4e-01 8e-01";
+      }
+    } else if (flu.checked) {
+      if (wastewater.checked) {
+        // Started with 1.7e-8 from applying the methods from Grimm et
+        // al 2023 to sequencing data collected by an NAO partner in
+        // the 2023-2024 flu season. Then, as with covid above, scaled
+        // by 7/5 and 100.
+        shedding_values.value = "2.7e-6";
+      } else if (nasal.checked) {
+        // Lewandowski et al. 2020 Figure 4, manually digitized
+        shedding_values.value =
+          "5e-6 5e-6 6e-6 7e-6 1e-5 1e-5 2e-5 3e-5 3e-5 3e-5 4e-5 3e-4 " +
+          "3e-4 3e-4 3e-4 5e-4 6e-4 1e-3 4e-3 9e-3 1e-2 1e-2 2e-2 3e-2 " +
+          "4e-2 5e-2 5e-2 6e-2 2e-1 2e-1 3e-1 3e-1 4e-1 6e-1 6e-1 7e-1";
+      }
+    }
+    cv_log_shedding_values.value = "5%";
+    shedding_duration.value = 5;
+    cv_shedding_duration.value = "30%";
+  }
+
   covid.onclick = function() {
     doubling_time.value = 3;
     cv_doubling_time.value = "10%";
     genome_length.value = "30,000";
+    set_shedding_values();
     set_custom_scenario();
   }
 
-  wastewater.onclick = function() {
-    sample_weekly();
-    sequence_weekly();
-    sample_cost.value = "200";
-    sample_population.value = "500,000";
-    low_quality.checked = true;
-    // Started with 1e-7 RA_i(1%) for SARA-CoV-2 from Grimm et al 2023. Then:
-    //  * Scaled by 7/5 (reciprocal of shedding duration in weeks) to convert
-    //    from RA_i(1%), incidence, to RA_p(1%), prevalence.
-    //  * Scaled by 100 to convert from RA_p(1%) to RA_p(100%).
-    // Now it represents the relative abundance we'd expect if we sampled from
-    // a randomly selected sick person.
-    shedding_values.value = "1.4e-5";
-    cv_log_shedding_values.value = "10%";
-    shedding_duration.value = 5;
-    cv_shedding_duration.value = "30%";
+  flu.onclick = function() {
+    doubling_time.value = 3;
+    cv_doubling_time.value = "10%";
+    genome_length.value = "14,000";
+    set_shedding_values();
     set_custom_scenario();
   }
 
@@ -611,17 +640,21 @@ window.simulate_one = simulate_one;
     sample_population.value = 100;
     sample_cost.value = get_input(sample_population) * 8;
     low_quality.checked = false;
-    // Lu et al 2021 Table S1
-    shedding_values.value =
-        "5e-06 1e-04 2e-04 3e-04 7e-04 8e-04 1e-03 6e-03 8e-03 " +
-        "1e-02 2e-02 3e-02 7e-02 4e-01 8e-01";
-    cv_log_shedding_values.value = "5%";
-    shedding_duration.value = 5;
-    cv_shedding_duration.value = "30%";
+    set_shedding_values();
     set_custom_scenario();
   }
 
-  scenario_ww.onclick = function() {
+  wastewater.onclick = function() {
+    sample_weekly();
+    sequence_weekly();
+    sample_cost.value = "200";
+    sample_population.value = "500,000";
+    low_quality.checked = true;
+    set_shedding_values();
+    set_custom_scenario();
+  }
+
+  scenario_ww_c.onclick = function() {
     covid.onclick();
     covid.checked = true;
     wastewater.onclick();
@@ -630,12 +663,13 @@ window.simulate_one = simulate_one;
     nx10b.checked = true;
     sites.value = 1;
     min_observations.value = 2;
-    simulation_label.value = "Wastewater NGS $1M";
-    scenario_ww.checked = true;
+    simulation_label.value = "Covid WW NGS $1M";
+    scenario_ww_c.checked = true;
+    set_shedding_values();
     update_hash();
   }
 
-  scenario_ns_1m.onclick = function() {
+  scenario_ns_c_1m.onclick = function() {
     covid.onclick();
     covid.checked = true;
     nasal.onclick();
@@ -644,42 +678,39 @@ window.simulate_one = simulate_one;
     nanopore.checked = true;
     sites.value = 2;
     min_observations.value = 2;
-    simulation_label.value = "Nasal Nanopore $1M";
-    scenario_ns_1m.checked = true;
+    simulation_label.value = "Covid Nasal Nanopore $1M";
+    scenario_ns_c_1m.checked = true;
+    set_shedding_values();
     update_hash();
   }
 
-  scenario_ns_500.onclick = function() {
-    covid.onclick();
-    covid.checked = true;
+  scenario_ww_f.onclick = function() {
+    flu.onclick();
+    flu.checked = true;
+    wastewater.onclick();
+    wastewater.checked = true;
+    nx10b.onclick();
+    nx10b.checked = true;
+    sites.value = 1;
+    min_observations.value = 2;
+    simulation_label.value = "Flu WW NGS $1M";
+    scenario_ww_f.checked = true;
+    set_shedding_values();
+    update_hash();
+  }
+
+  scenario_ns_f_1m.onclick = function() {
+    flu.onclick();
+    flu.checked = true;
     nasal.onclick();
     nasal.checked = true;
     nanopore.onclick();
     nanopore.checked = true;
-    sites.value = 1;
+    sites.value = 2;
     min_observations.value = 2;
-    simulation_label.value = "Nasal Nanopore $500k";
-    scenario_ns_500.checked = true;
-    update_hash();
-  }
-
-  scenario_ns_290.onclick = function() {
-    covid.onclick();
-    covid.checked = true;
-    nasal.onclick();
-    nasal.checked = true;
-    nanopore.onclick();
-    nanopore.checked = true;
-    sites.value = 1;
-    min_observations.value = 2;
-    simulation_label.value = "Nasal Nanopore $290k";
-    sequence_daily();
-    sample_daily();
-    sampling_t.checked = false;
-    sampling_r.checked = false;
-    sequencing_t.checked = false;
-    sequencing_r.checked = false;
-    scenario_ns_290.checked = true;
+    simulation_label.value = "Flu Nasal Nanopore $1M";
+    scenario_ns_f_1m.checked = true;
+    set_shedding_values();
     update_hash();
   }
 
@@ -689,7 +720,7 @@ window.simulate_one = simulate_one;
 
   reset.onclick = function() {
     clear.onclick();
-    scenario_ww.onclick();
+    scenario_ww_c.onclick();
     document.location.hash = "";
   }
 
@@ -726,7 +757,8 @@ function interpret_hash() {
 }
 
 if (!window.location.hash || window.location.hash.length < 3) {
-  scenario_ww.onclick();
+  scenario_ww_c.onclick();
+  set_shedding_values();
 } else {
   interpret_hash();
 }

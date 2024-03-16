@@ -984,7 +984,7 @@ function draw_chart() {
     google.visualization.arrayToDataTable(data),
     {
       title: "Cumulative Incidence at Detection",
-      legend: {position: 'bottom'},
+      legend: {position: 'top', maxLines: 5},
       vAxis: {format: vformat,
               title: "Cumulative Incidence at Detection"},
       hAxis: {format:'#%',

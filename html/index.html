@@ -675,8 +675,6 @@ window.simulate_one = simulate_one;
   }
 
   nasal.onclick = function() {
-    sample_daily();
-    sequence_daily();
     sample_population.value = 100;
     sample_cost.value = get_input(sample_population) * 8;
     low_quality.checked = false;
@@ -685,8 +683,6 @@ window.simulate_one = simulate_one;
   }
 
   wastewater.onclick = function() {
-    sample_weekly();
-    sequence_weekly();
     sample_cost.value = "200";
     sample_population.value = "500,000";
     low_quality.checked = true;

@@ -10,7 +10,7 @@
   border: 1px solid red;
 }
 #chart_div {
-  width: 900px;
+  width: 850px;
   height: 500px;
   max-width: 100%;
 }
@@ -23,18 +23,30 @@ input[type=text] {
 .hidden {
   display: none;
 }
-body {
-  max-width: 45em;
+#explanation, #configuration {
+  max-width: 650px;
+  padding-bottom: 1em;
 }
 .note {
   padding-left: 1em;
   font-style: italic;
+}
+@media screen and (min-width: 1500px) {
+  #results {
+    padding-top: 1em;
+    width: 850px;
+    right: 0;
+    top: 0;
+    position: fixed;
+  }
 }
 </style>
 
 <body>
 
 <h1>Sampling and Sequencing Simulator</h1>
+
+<div id=explanation>
 
 <p>
 
@@ -188,7 +200,9 @@ body {
   that will let anyone loading that URL see (a) your last set of
   parameters and (b) any saved runs.
 
-<p>
+</div>
+
+<div id=configuration>
 
 <button id=reset>Reset</button>
 <table>
@@ -323,7 +337,9 @@ number of times, and display the results in a chart below.
 <tr><td colspan=4 class=note>Use a descriptive label here, which will appear in your chart and on the outcomes table.
 </table>
 
-<p>
+</div>
+
+<div id=results>
 
 <button id=run_simulation disabled>Run</button>
 <button id=clear class=hidden>Clear</button>
@@ -331,6 +347,8 @@ number of times, and display the results in a chart below.
 <div id=chart_div></div>
 
 <table id=table_element border=1 cellpadding=5></table>
+
+</div>
 
 <script type=module>
 import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';

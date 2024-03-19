@@ -233,20 +233,24 @@ input[type=text] {
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
   <tr><td>Shedding amount:
     <td><textarea rows=5 cols=40 id=shedding_values></textarea>
-    <td align=right>CV(log):<td><input type=text id=cv_log_shedding_values>
+    <td align=right>&#963;<sub>g</sub>:<td><input type=text id=geom_stdev_shedding_values>
 
-<tr><td colspan=4 class=note>If you ran metagenomic sequencing on a sample
-that was from just a single infected person, what fraction of
+<tr><td colspan=4 class=note>If you ran metagenomic sequencing on a
+sample that was from just a single infected person, what fraction of
 sequencing reads would be from the pathogen?  This could be a single
 number to model all infected people as shedding an equal amount, or
 multiple space-separated numbers to represent a set of equally likely
-possible shedding amounts.
+possible shedding amounts. For &#963;<sub>g</sub> you specify the
+geometric standard deviation of per-simulation noise representing our
+uncertainty about whether the true relative abundance would be higher
+or lower.
 <tr><td>Shedding duration (days):
     <td><input type=text id=shedding_duration value=5>
-    <td align=right>CV:<td><input type=text id=cv_shedding_duration>
+<td align=right>CV<sub>g</sub>:<td><input type=text id=cv_shedding_duration>
 <tr><td colspan=4 class=note>Once someone is infected, how many days do they
 shed for?  This is a simplified model where we assume people shed
-equally throughout their infection.
+equally throughout their infection. For CV<sub>g</sub> specify the
+geometric coefficient of variation.
 <tr><td>Low-quality fragments?<td><input id=low_quality type=checkbox>
 <tr><td colspan=4 class=note>When sequencing wastewater the nucleic acid
 fragments tend to be pretty torn up by the hostile environment, making
@@ -306,7 +310,6 @@ quality; see "low-quality fragments?" above.
   </table>
 <tr><td>Processing delay (days):
   <td><input type=text id=processing_delay value=1>
-  <td align=right>CV:<td><input type=text id=cv_processing_delay>
 <tr><td colspan=4 class=note>How long does it take from collecting a
 sample until you have the bioinformatic results?  Remember to include
 lab time to prepare the sample for sequencing, waiting for your sample
@@ -353,12 +356,15 @@ number of times, and display the results in a chart below.
 <script type=module>
 import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';
 import normal from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-normal@esm/index.mjs';
+import lognormal from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-lognormal@esm/index.mjs';
+
+const epsilon = 0.000001;
 
 function get_input_cv(input, input_cv) {
   const mean = get_input(input);
   const cv = get_input(input_cv) / 100;
 
-  if (cv < 0.1) {
+  if (cv < epsilon) {
     return mean;
   }
 
@@ -366,26 +372,37 @@ function get_input_cv(input, input_cv) {
   return normal(mean, stdev);
 }
 
-function get_inputs_log_cv(input, input_log_cv) {
-  const means = get_inputs(input);
-  const cv_of_log = get_input(input_log_cv) / 100;
-  if (cv_of_log < 0.01) {
-    return means;
+function get_input_geom_cv(input, input_geom_cv) {
+  const geom_mean = get_input(input);
+  const geom_cv = get_input(input_geom_cv) / 100;
+
+  if (geom_cv < epsilon) {
+    return geom_mean;
   }
 
-  // Don't want to bias each mean independently, bias all of them by
-  // the CV together.  Also do it in log space, since we want log
-  // normal here.
+  const geom_stdev = geom_cv * geom_mean;
+  return lognormal(geom_mean, geom_stdev);
+}
 
-  const stdev_of_log = cv_of_log;
-  const bias_of_log = normal(1, stdev_of_log);
-
-  const adjusted_means = [];
-  for (const mean of means) {
-    const log_mean = Math.log(mean);
-    adjusted_means.push(Math.exp(log_mean * bias_of_log));
+function get_inputs_biased(input, input_geom_stdev) {
+  const empirical_values = get_inputs(input);
+  const geom_stdev = get_input(input_geom_stdev) / 100;
+  if (geom_stdev < epsilon) {
+    return empirical_values;
   }
-  return adjusted_means;
+
+  // Don't want to bias each mean independently, bias all of them
+  // together with log-normally distributed noise.  The geometric mean
+  // (and median) of the noise is zero, and the standard deviation is
+  // provided by the user.
+
+  const bias = Math.exp(normal(0, geom_stdev));
+
+  const adjusted_values = [];
+  for (const empirical_value of empirical_values) {
+    adjusted_values.push(empirical_value * bias);
+  }
+  return adjusted_values;
 }
 
 function simulate_one() {
@@ -395,8 +412,8 @@ function simulate_one() {
   const growth_factor = Math.exp(r);
   let cumulative_incidence = 1/population;
 
-  let detectable_days = get_input_cv(shedding_duration, cv_shedding_duration);
-  const ra_sicks = get_inputs_log_cv(shedding_values, cv_log_shedding_values);
+  let detectable_days = get_input_geom_cv(shedding_duration, cv_shedding_duration);
+  const ra_sicks = get_inputs_biased(shedding_values, geom_stdev_shedding_values);
 
   let n_min_observations = get_input(min_observations);
   let observations = 0;
@@ -434,7 +451,7 @@ function simulate_one() {
   let fraction_useful_reads = read_length_usable / get_input(genome_length);
 
   let v_processing_delay_factor = Math.pow(
-    growth_factor, get_input_cv(processing_delay, cv_processing_delay));
+    growth_factor, get_input(processing_delay));
   let n_reads = get_input(sample_depth);
 
   const should_sample = [];
@@ -444,16 +461,6 @@ function simulate_one() {
     should_sequence.push(is_checked("sequencing_", day_of_week));
   }
 
-  function probablistic_round(n) {
-    // Probabilistic rounding: 3.6 should turn into 3 40% of the
-    // time and 4 60% of the time.
-
-    if (Math.random() < (n - Math.floor(n))) {
-      return Math.floor(n) + 1;
-    } else {
-      return Math.floor(n);
-    }
-  }
   while (true) {
     day++;
     cumulative_incidence *= growth_factor;
@@ -494,7 +501,6 @@ function simulate_one() {
             ra_sick += ra_sicks[Math.floor(Math.random() * ra_sicks.length)];
           }
           ra_sick = ra_sick / site_infos[site].sample_sick;
-          console.log(ra_sick);
         }
 
         const probability_read_is_useful =
@@ -505,6 +511,9 @@ function simulate_one() {
         site_infos[site].sample_sick = 0;
         site_infos[site].sample_total = 0;
 
+        // If this is zero it means that we didn't have any sick
+        // people in our sample, so we don't need to check if we
+        // observed any useful reads.
         if (probability_read_is_useful > 0) {
           observations += poisson(n_reads * probability_read_is_useful);
           if (observations >= n_min_observations) {
@@ -513,7 +522,7 @@ function simulate_one() {
         }
       }
     }
-    if (cumulative_incidence > 1) {
+    if (cumulative_incidence > 1 || day > 365*10) {
       return 1;
     }
   }
@@ -580,7 +589,6 @@ window.simulate_one = simulate_one;
     run_cost.value=450;
     sample_depth.value="8e5";
     processing_delay.value=4;
-    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -591,7 +599,6 @@ window.simulate_one = simulate_one;
     run_cost.value="13,000";
     sample_depth.value="1e10";
     processing_delay.value=4;
-    cv_processing_delay.value="30%";
     sample_weekly();
     sequence_weekly();
     set_custom_scenario();
@@ -602,7 +609,6 @@ window.simulate_one = simulate_one;
     run_cost.value="5,300";
     sample_depth.value="7.3e8";
     processing_delay.value=4;
-    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -613,7 +619,6 @@ window.simulate_one = simulate_one;
     run_cost.value="7,400";
     sample_depth.value="7.3e8";
     processing_delay.value=4;
-    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -624,7 +629,6 @@ window.simulate_one = simulate_one;
     run_cost.value="4,000";
     sample_depth.value="8e8";
     processing_delay.value=4;
-    cv_processing_delay.value="30%";
     sample_daily();
     sequence_daily();
     set_custom_scenario();
@@ -635,7 +639,6 @@ window.simulate_one = simulate_one;
     run_cost.value="26,000";
     sample_depth.value="9e9";
     processing_delay.value=4*7;
-    cv_processing_delay.value="30%";
     sample_weekly();
     sequence_weekly();
     set_custom_scenario();
@@ -674,7 +677,7 @@ window.simulate_one = simulate_one;
           "4e-2 5e-2 5e-2 6e-2 2e-1 2e-1 3e-1 3e-1 4e-1 6e-1 6e-1 7e-1";
       }
     }
-    cv_log_shedding_values.value = "5%";
+    geom_stdev_shedding_values.value = "5%";
     shedding_duration.value = 5;
     cv_shedding_duration.value = "30%";
   }

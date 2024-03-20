@@ -396,7 +396,7 @@ function get_inputs_biased(input, input_geom_stdev) {
   // (and median) of the noise is zero, and the standard deviation is
   // provided by the user.
 
-  const bias = Math.exp(normal(0, geom_stdev));
+  const bias = lognormal(0, geom_stdev);
 
   const adjusted_values = [];
   for (const empirical_value of empirical_values) {

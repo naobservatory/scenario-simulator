@@ -367,7 +367,7 @@ ahead.
 <tr><td>Overhead (percentage)<td><input type=text id=overhead value=50>
 <tr><td colspan=4 class=note>Assume costs are higher than the inputs
 specified above by this fixed percentage.
-<tr><td>Annual Cost (dollars):<td><input disabled type=text id=cost value=>
+<tr><td>Annual Cost (dollars):<td><input disabled type=text id=cost value=''>
 <tr><th colspan=4>Simulation
 <tr><td>Simulations:<td><input type=text id=simulations value=1,000>
 <tr><td colspan=4 class=note>We will run the simulation the specified
@@ -479,8 +479,14 @@ function simulate_one() {
       day_offset: Math.floor(Math.random() * 7)})
   }
 
+  let bp_genome_length = get_input(genome_length);
   let n_sample_population = get_input(sample_population)
   let read_length_usable = get_input(read_length);
+
+  // Even if it can read longer than the pathogen, that doesn't give
+  // greater chance of observing anything.
+  read_length_usable = Math.min(read_length_usable, bp_genome_length)
+
   if (low_quality.checked) {
     read_length_usable = Math.min(read_length_usable, 120);
   }
@@ -491,7 +497,7 @@ function simulate_one() {
   // not going to happen to hit this suspicious section. Very roughly,
   // the fraction of reads that do hit this section will be the read
   // length as a fraction of the overall genome length.
-  let fraction_useful_reads = read_length_usable / get_input(genome_length);
+  let fraction_useful_reads = read_length_usable / bp_genome_length;
 
   let v_processing_delay_factor = Math.pow(
     growth_factor, get_input(processing_delay));
@@ -998,13 +1004,31 @@ function validate(input) {
   invalid_inputs.delete(input);
   if (input == shedding_values) {
     for (const sv of input.value.split(" ")) {
-      if (!is_float(sv)) {
-        input.classList.add("invalid");
+      if (!is_float(sv) ||
+          Number.parseFloat(sv) >= 1 ||
+          Number.parseFloat(sv) <= 0) {
+        input.classList.add("invaid");
         invalid_inputs.add(input);
       }
     }
   } else {
-    if (!is_float(input.value)) {
+    if (
+      !is_float(input.value) ||
+        (input == read_length && get_input(input) < 40) ||
+        (input == cv_doubling_time && get_input(input) < 0) ||
+        (input == doubling_time && get_input(input) < 0) ||
+        (input == genome_length && get_input(input) < 100) ||
+        (input == geom_stdev_shedding_values && get_input(input) < 0) ||
+        (input == shedding_duration && get_input(input) <= 0) ||
+        (input == cv_shedding_duration && get_input(input) <= 0) ||
+        (input == sample_cost && get_input(input) < 0) ||
+        (input == sample_depth && get_input(input) < 1e3) ||
+        (input == run_cost && get_input(input) < 0) ||
+        (input == processing_delay && get_input(input) < 0.01) ||
+        (input == min_observations && get_input(input) < 1) ||
+        (input == sites && get_input(input) < 1) ||
+        (input == overhead && get_input(input) < 0) ||
+        (input == simulations && get_input(input) < 1)) {
       input.classList.add("invalid");
       invalid_inputs.add(input);
     }

@@ -303,24 +303,24 @@ input[type=text] {
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
   <tr><td>Relative abundance:
     <td><textarea rows=5 cols=40 id=shedding_values></textarea>
-    <td align=right>&#963;<sub>g</sub>:<td><input type=text id=geom_stdev_shedding_values>
+    <td align=right>&#963;:<td><input type=text id=sigma_shedding_values>
 
 <tr><td colspan=4 class=note>If you ran metagenomic sequencing on a
 sample that was from just a single infected person, what fraction of
 sequencing reads would be from the pathogen?  This could be a single
 number to model all infected people as contributing an equal amount,
 or multiple space-separated numbers to represent a set of equally
-likely contribution amounts. For &#963;<sub>g</sub> you specify the
-geometric standard deviation of per-simulation noise representing our
+likely contribution amounts. For &#963; you specify the standard
+deviation of the log, giving per-simulation noise representing our
 uncertainty about whether the true relative abundance would be higher
 or lower.
 <tr><td>Shedding duration (days):
     <td><input type=text id=shedding_duration value=5>
-<td align=right>CV<sub>g</sub>:<td><input type=text id=cv_shedding_duration>
+<td align=right>&#963;:<td><input type=text id=sigma_shedding_duration>
 <tr><td colspan=4 class=note>Once someone is infected, how many days do they
 shed for?  This is a simplified model where we assume people shed
-equally throughout their infection. For CV<sub>g</sub> specify the
-geometric coefficient of variation.
+equally throughout their infection. For &#963;, specify the
+standard deviation of the log.
 <tr><td>Low-quality fragments?<td><input id=low_quality type=checkbox>
 <tr><td colspan=4 class=note>When sequencing wastewater the nucleic acid
 fragments tend to be pretty torn up by the hostile environment, making
@@ -455,22 +455,21 @@ function get_input_cv(input, input_cv) {
   return normal(mean, stdev);
 }
 
-function get_input_geom_cv(input, input_geom_cv) {
+function get_input_sigma(input, input_sigma) {
   const geom_mean = get_input(input);
-  const geom_cv = get_input(input_geom_cv) / 100;
+  const sigma = get_input(input_sigma);
 
-  if (geom_cv < epsilon) {
+  if (sigma < epsilon) {
     return geom_mean;
   }
 
-  const geom_stdev = geom_cv * geom_mean;
-  return lognormal(geom_mean, geom_stdev);
+  return lognormal(Math.log(geom_mean), sigma);
 }
 
-function get_inputs_biased(input, input_geom_stdev) {
+function get_inputs_biased(input, input_sigma) {
   const empirical_values = get_inputs(input);
-  const geom_stdev = get_input(input_geom_stdev) / 100;
-  if (geom_stdev < epsilon) {
+  const sigma = get_input(input_sigma);
+  if (sigma < epsilon) {
     return empirical_values;
   }
 
@@ -479,7 +478,7 @@ function get_inputs_biased(input, input_geom_stdev) {
   // (and median) of the noise is zero, and the standard deviation is
   // provided by the user.
 
-  const bias = lognormal(0, geom_stdev);
+  const bias = lognormal(0, sigma);
 
   const adjusted_values = [];
   for (const empirical_value of empirical_values) {
@@ -495,8 +494,9 @@ function simulate_one() {
   const growth_factor = Math.exp(r);
   let cumulative_incidence = 1/population;
 
-  let detectable_days = get_input_geom_cv(shedding_duration, cv_shedding_duration);
-  const ra_sicks = get_inputs_biased(shedding_values, geom_stdev_shedding_values);
+  let detectable_days = get_input_sigma(shedding_duration,
+                                        sigma_shedding_duration);
+  const ra_sicks = get_inputs_biased(shedding_values, sigma_shedding_values);
 
   let n_min_observations = get_input(min_observations);
   let observations = 0;
@@ -768,9 +768,9 @@ simulation_label.onkeyup = update_run_text;
           "4e-2 5e-2 5e-2 6e-2 2e-1 2e-1 3e-1 3e-1 4e-1 6e-1 6e-1 7e-1";
       }
     }
-    geom_stdev_shedding_values.value = "5%";
+    sigma_shedding_values.value = "0.05";
     shedding_duration.value = 5;
-    cv_shedding_duration.value = "30%";
+    sigma_shedding_duration.value = "0.05";
   }
 
   covid.onclick = function() {
@@ -1064,9 +1064,9 @@ function validate(input) {
         (input == sample_population && get_input(input) > 1e9) ||
         (input == doubling_time && get_input(input) < 0) ||
         (input == genome_length && get_input(input) < 100) ||
-        (input == geom_stdev_shedding_values && get_input(input) < 0) ||
+        (input == sigma_shedding_values && get_input(input) < 0) ||
         (input == shedding_duration && get_input(input) <= 0) ||
-        (input == cv_shedding_duration && get_input(input) <= 0) ||
+        (input == sigma_shedding_duration && get_input(input) <= 0) ||
         (input == sample_cost && get_input(input) < 0) ||
         (input == sample_depth && get_input(input) < 1e3) ||
         (input == run_cost && get_input(input) < 0) ||

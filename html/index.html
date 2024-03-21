@@ -64,6 +64,25 @@ input[type=text] {
 #table_element {
  margin-top: 1em;
 }
+#simulation_status {
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.4);
+}
+
+/* Modal Content/Box */
+#simulation_status_inner {
+  background-color: white;
+  margin: 5% auto;
+  padding: 1em;
+  border: 1px solid black;
+  border-radius: 0.5em;
+  width: 8em;
+}
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -404,6 +423,13 @@ number of times, and display the results in a chart below.
 
 <button id=run_simulation disabled>Run</button>
 <button id=clear class=hidden>Clear</button>
+
+<div id=simulation_status class=hidden>
+  <div id=simulation_status_inner>
+    <div id=simulation_count></div>
+    <button id=stop_simulation>Stop</button>
+  </div>
+</div>
 
 <table id=table_element border=1 cellpadding=5 class=hidden></table>
 
@@ -1006,9 +1032,7 @@ function update_run_enablement() {
       invalid_input_name_li.innerText = invalid_input_name;
       invalid_input_list.appendChild(invalid_input_name_li);
     }
-    console.log("a", input_errors.classList)
     input_errors.classList.remove("hidden");
-    console.log("b", input_errors.classList)
   } else {
     input_errors.classList.add("hidden");
   }
@@ -1180,22 +1204,64 @@ function draw_chart() {
   }
 }
 
+let remaining_simulations = 0;
+let simulation_batch_size = 0;
+const outcomes = [];
+let simulation_should_stop = false;
+
+function simulate_direct() {
+  for (let i = 0;
+       i < simulation_batch_size && remaining_simulations > 0;
+       i++) {
+    outcomes.push(window.simulate_one());
+    remaining_simulations--;
+  }
+  simulation_count.innerText =
+    (get_input(simulations) - remaining_simulations) + "/" +
+    get_input(simulations);
+}
+
+function simulate_cancellable() {
+  if (remaining_simulations == 0 || simulation_should_stop) {
+    outcomes.sort((a,b) => a-b);
+    add_to_chart(outcomes);
+    actively_simulating = false;
+    simulation_status.classList.add("hidden");
+    update_run_enablement();
+    simulation_should_stop = false;
+    return;
+  }
+
+  simulate_direct();
+  window.setTimeout(simulate_cancellable, 1);
+}
+
 function simulate() {
   actively_simulating = true;
   update_run_enablement();
   window.setTimeout(function() {
-    const outcomes = [];
-    for (let i = 0; i < get_input(simulations); i++) {
-      outcomes.push(window.simulate_one());
+    outcomes.length = 0;
+    simulation_batch_size = Math.ceil(6000 / get_input(sites));
+    remaining_simulations = get_input(simulations);
+    const remaining_batches = remaining_simulations / simulation_batch_size;
+    if (remaining_batches <= 3) {
+      while(remaining_simulations > 0) {
+        simulate_direct();
+      }
+      simulate_cancellable();
+    } else {
+      simulation_status.classList.remove("hidden");
+      simulation_count.innerText = "0/" + get_input(simulations);
+      window.setTimeout(simulate_cancellable, 1);
     }
-    outcomes.sort((a,b) => a-b);
-    add_to_chart(outcomes);
-    actively_simulating = false;
-    update_run_enablement();
   }, 1);
 }
 
 run_simulation.onclick = simulate;
+stop_simulation.onclick = function() {
+  simulation_should_stop = true;
+}
+
 </script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script>

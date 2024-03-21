@@ -374,7 +374,7 @@ function get_input_cv(input, input_cv) {
 
 function get_input_sigma(input, input_sigma) {
   const geom_mean = get_input(input);
-  const sigma = get_input(input_sigma) / 100;
+  const sigma = get_input(input_sigma);
 
   if (sigma < epsilon) {
     return geom_mean;
@@ -384,7 +384,7 @@ function get_input_sigma(input, input_sigma) {
 
 function get_inputs_biased(input, input_sigma) {
   const empirical_values = get_inputs(input);
-  const sigma = get_input(input_sigma) / 100;
+  const sigma = get_input(input_sigma);
   if (sigma < epsilon) {
     return empirical_values;
   }
@@ -675,9 +675,9 @@ window.simulate_one = simulate_one;
           "4e-2 5e-2 5e-2 6e-2 2e-1 2e-1 3e-1 3e-1 4e-1 6e-1 6e-1 7e-1";
       }
     }
-    sigma_shedding_values.value = "5%";
+    sigma_shedding_values.value = "0.05";
     shedding_duration.value = 5;
-    sigma_shedding_duration.value = "5%";
+    sigma_shedding_duration.value = "0.05";
   }
 
   covid.onclick = function() {

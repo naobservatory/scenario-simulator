@@ -23,6 +23,12 @@ input[type=text] {
 .hidden {
   display: none;
 }
+#input_errors {
+  border: 1px solid red;
+  border-radius: 0.5em;
+  padding: 0.5em;
+  margin: 0.5em;
+}
 #explanation, #configuration {
   max-width: 650px;
   padding-bottom: 1em;
@@ -86,8 +92,8 @@ input[type=text] {
 <p>
 
   At a technical level, the tool runs many simulations and graphs them
-  by the observed cumulative incidence at detection. 
-  
+  by the observed cumulative incidence at detection.
+
   <details>
     <summary>more...</summary>
 
@@ -129,9 +135,9 @@ input[type=text] {
           1e-5 and 1e-6, for that simulation we'll use 7e-6 and 7e-7
           instead.
   </details>
-          
+
 <p>
-  
+
   You can see the actual implementation of the tool by
   reading the <code>simulate_one</code> function in the source
   of this page or
@@ -143,7 +149,7 @@ input[type=text] {
   Relative abundance estimates refer to the fraction of sequencing
   reads that would come from the modeled virus if everyone
   contributing to the sample was currently infected. We estimated shedding for
-  SARS-CoV-2 and Influenza A using different sources: 
+  SARS-CoV-2 and Influenza A using different sources:
   <details>
     <summary>more...</summary>
 
@@ -218,7 +224,7 @@ input[type=text] {
         infected.
    </ul>
   </details>
-  
+
 <p>
 
   Please treat this tool as a robot that will scribble on the back of
@@ -374,6 +380,12 @@ number of times, and display the results in a chart below.
 </div>
 
 <div id=results>
+
+<div id=input_errors class=hidden>
+  To run the simulation, please fix the following invalid inputs:
+  <ul id=invalid_input_list>
+  </ul>
+</div>
 
 <button id=run_simulation disabled>Run</button>
 <button id=clear class=hidden>Clear</button>
@@ -899,10 +911,19 @@ function update_cost() {
 }
 update_cost();
 
+function validate_all_inputs() {
+  for (const input of document.querySelectorAll("input")) {
+    if (input.type == "text") {
+      validate(input);
+    }
+  }
+  validate(shedding_values);
+}
+
+
 for (const input of document.querySelectorAll("input")) {
   input.onchange = function(e) {
-    if (input.type == "text" &&
-        input != simulation_label) {
+    if (input.type == "text") {
        validate(input);
     }
 
@@ -938,20 +959,57 @@ function is_float(v) {
   return !Number.isNaN(Number.parseFloat(v));
 }
 
-function validate(input) {
-  input.classList.remove("invalid");
+const invalid_inputs = new Set();
+let js_fully_loaded = false;
+let actively_simulating = false;
 
+function update_run_enablement() {
+  run_simulation.disabled =
+    invalid_inputs.size || !js_fully_loaded || actively_simulating;
+
+  if (invalid_inputs.size) {
+    invalid_input_list.innerHTML = "";
+    const invalid_input_names = [];
+    for (const invalid_input of invalid_inputs) {
+      invalid_input_names.push(
+        invalid_input.parentElement.previousSibling.innerText.replace(/:$/, ''));
+    }
+
+    invalid_input_names.sort();
+    for (const invalid_input_name of invalid_input_names) {
+      invalid_input_name_li = document.createElement("li");
+      invalid_input_name_li.innerText = invalid_input_name;
+      invalid_input_list.appendChild(invalid_input_name_li);
+    }
+    console.log("a", input_errors.classList)
+    input_errors.classList.remove("hidden");
+    console.log("b", input_errors.classList)
+  } else {
+    input_errors.classList.add("hidden");
+  }
+}
+
+function validate(input) {
+  if (input == simulation_label || input == cost) {
+    return;
+  }
+
+  input.classList.remove("invalid");
+  invalid_inputs.delete(input);
   if (input == shedding_values) {
     for (const sv of input.value.split(" ")) {
       if (!is_float(sv)) {
         input.classList.add("invalid");
+        invalid_inputs.add(input);
       }
     }
   } else {
     if (!is_float(input.value)) {
       input.classList.add("invalid");
+      invalid_inputs.add(input);
     }
   }
+  update_run_enablement();
 }
 
 function get_inputs(input) {
@@ -1068,7 +1126,8 @@ function draw_chart() {
 }
 
 function simulate() {
-  run_simulation.disabled = true;
+  actively_simulating = true;
+  update_run_enablement();
   window.setTimeout(function() {
     const outcomes = [];
     for (let i = 0; i < get_input(simulations); i++) {
@@ -1076,7 +1135,8 @@ function simulate() {
     }
     outcomes.sort((a,b) => a-b);
     add_to_chart(outcomes);
-    run_simulation.disabled = false;
+    actively_simulating = false;
+    update_run_enablement();
   }, 1);
 }
 
@@ -1086,7 +1146,9 @@ run_simulation.onclick = simulate;
 <script>
   google.charts.load('current', {'packages':['corechart']});
 google.charts.setOnLoadCallback(function() {
-  run_simulation.disabled = false;
+  js_fully_loaded = true;
+  validate_all_inputs();
+  update_run_enablement();
   if (saved_outcomes.length) {
     draw_chart();
   }

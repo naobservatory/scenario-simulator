@@ -222,6 +222,12 @@ input[type=text] {
         because we're really only concerned with scenarios that would
         let us flag a pandemic before too many people had been
         infected.
+
+    <li><p>For very substantial efforts, with very deep sequencing
+        across many sites, a real detection system would start to see
+        economies of scale.  We don't model this, and instead assume
+        linear cost per site.
+
    </ul>
   </details>
 
@@ -450,7 +456,7 @@ function get_inputs_biased(input, input_geom_stdev) {
 
 function simulate_one() {
   let day = 0;
-  let population = 1e8;
+  let population = 1e10;
   const r = Math.log(2)/get_input_cv(doubling_time, cv_doubling_time);
   const growth_factor = Math.exp(r);
   let cumulative_incidence = 1/population;
@@ -580,10 +586,12 @@ function simulate_one() {
 window.simulate_one = simulate_one;
 
 </script>
-<script>
-  simulation_label.onkeyup = function() {
+  <script>
+  function update_run_text() {
     run_simulation.innerText = "Run " + simulation_label.value;
   }
+
+simulation_label.onkeyup = update_run_text;
 
   function sample_weekly() {
     sampling_m.checked = false;
@@ -836,6 +844,7 @@ window.simulate_one = simulate_one;
     clear.onclick();
     scenario_ww_c.onclick();
     document.location.hash = "";
+    validate_all_inputs();
   }
 
 function is_checked(checkbox_prefix, day_of_week) {
@@ -924,6 +933,7 @@ function validate_all_inputs() {
     }
   }
   validate(shedding_values);
+  update_run_enablement();
 }
 
 
@@ -993,6 +1003,8 @@ function update_run_enablement() {
   } else {
     input_errors.classList.add("hidden");
   }
+    
+  update_run_text();
 }
 
 function validate(input) {
@@ -1016,6 +1028,8 @@ function validate(input) {
       !is_float(input.value) ||
         (input == read_length && get_input(input) < 40) ||
         (input == cv_doubling_time && get_input(input) < 0) ||
+        (input == sample_population && get_input(input) < 1) ||
+        (input == sample_population && get_input(input) > 1e9) ||
         (input == doubling_time && get_input(input) < 0) ||
         (input == genome_length && get_input(input) < 100) ||
         (input == geom_stdev_shedding_values && get_input(input) < 0) ||
@@ -1139,10 +1153,15 @@ function draw_chart() {
 
     for (const percentile of [25, 50, 75, 90]) {
       const scenario_td = document.createElement("td");
-      scenario_td.innerText = new Intl.NumberFormat(
-        'en-US', {style: 'percent',
-                  maximumSignificantDigits: 2}).format(
-                    saved_outcome.percentile_outcomes[percentile]);
+      const val = saved_outcome.percentile_outcomes[percentile];
+      if (val < 0.3) {
+        scenario_td.innerText = new Intl.NumberFormat(
+          'en-US', {style: 'percent',
+                    maximumSignificantDigits: 2}).format(
+                      saved_outcome.percentile_outcomes[percentile]);
+      } else {
+        scenario_td.innerText = "ND";
+      }
       scenario_tr.appendChild(scenario_td);
     }
     table_element.appendChild(scenario_tr);
@@ -1172,7 +1191,6 @@ run_simulation.onclick = simulate;
 google.charts.setOnLoadCallback(function() {
   js_fully_loaded = true;
   validate_all_inputs();
-  update_run_enablement();
   if (saved_outcomes.length) {
     draw_chart();
   }

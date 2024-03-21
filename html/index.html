@@ -625,7 +625,7 @@ window.simulate_one = simulate_one;
     run_simulation.innerText = "Run " + simulation_label.value;
   }
 
-simulation_label.onkeyup = update_run_text;
+  simulation_label.onkeyup = update_run_text;
 
   function sample_weekly() {
     sampling_m.checked = false;
@@ -820,6 +820,7 @@ simulation_label.onkeyup = update_run_text;
     scenario_ww_c.checked = true;
     set_shedding_values();
     update_hash();
+    update_run_text();
   }
 
   scenario_ns_c_1m.onclick = function() {
@@ -836,6 +837,7 @@ simulation_label.onkeyup = update_run_text;
     scenario_ns_c_1m.checked = true;
     set_shedding_values();
     update_hash();
+    update_run_text();
   }
 
   scenario_ww_f.onclick = function() {
@@ -852,6 +854,7 @@ simulation_label.onkeyup = update_run_text;
     scenario_ww_f.checked = true;
     set_shedding_values();
     update_hash();
+    update_run_text();
   }
 
   scenario_ns_f_1m.onclick = function() {
@@ -868,6 +871,7 @@ simulation_label.onkeyup = update_run_text;
     scenario_ns_f_1m.checked = true;
     set_shedding_values();
     update_hash();
+    update_run_text();
   }
 
   custom_scenario.onclick = function() {

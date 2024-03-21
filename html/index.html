@@ -9,9 +9,16 @@
 .invalid {
   border: 1px solid red;
 }
+
+:root {
+  --left-pane-width: 650px;
+  --right-pane-width: calc(100vw - var(--left-pane-width) - 50px);
+}
+
 #chart_div {
-  width: 850px;
-  height: 500px;
+  --chart-width: calc(min(100vh, var(--right-pane-width)));
+  width: var(--chart-width);
+  height: calc(var(--chart-width) * 3/4);
   max-width: 100%;
 }
 th {
@@ -30,23 +37,23 @@ input[type=text] {
   margin: 0.5em;
 }
 #explanation, #configuration {
-  max-width: 650px;
+  max-width: var(--left-pane-width);
   padding-bottom: 1em;
 }
 .note {
   padding-left: 1em;
   font-style: italic;
 }
-@media screen and (min-width: 1500px) {
+@media screen and (min-width: 1400px) {
   #results {
     padding-top: 1em;
-    width: 850px;
+    width: var(--right-pane-width);
     right: 0;
     top: 0;
     position: fixed;
   }
 }
-@media screen and (max-width: 700px) {
+@media screen and (max-width: var(--right-pane-width)) {
   #explanation, #configuration, table, #chart_div {
     width: calc(100vw - 10px);
   }
@@ -54,7 +61,9 @@ input[type=text] {
     width: 5em;
   }
 }
-
+#table_element {
+ margin-top: 1em;
+}
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -396,9 +405,9 @@ number of times, and display the results in a chart below.
 <button id=run_simulation disabled>Run</button>
 <button id=clear class=hidden>Clear</button>
 
-<div id=chart_div></div>
+<table id=table_element border=1 cellpadding=5 class=hidden></table>
 
-<table id=table_element border=1 cellpadding=5></table>
+<div id=chart_div></div>
 
 </div>
 
@@ -1003,7 +1012,7 @@ function update_run_enablement() {
   } else {
     input_errors.classList.add("hidden");
   }
-    
+
   update_run_text();
 }
 
@@ -1069,6 +1078,7 @@ clear.onclick = function() {
     chart.clearChart();
   }
   table_element.innerHTML = "";
+  table_element.classList.add("hidden");
   update_hash();
 }
 
@@ -1088,6 +1098,7 @@ function add_to_chart(outcomes) {
 
 function draw_chart() {
   clear.classList.remove("hidden");
+  table_element.classList.remove("hidden");
 
   const data = [["Percentile"]];
   for (let i = 0; i < 100; i++) {
@@ -1124,6 +1135,7 @@ function draw_chart() {
     {
       title: "Cumulative Incidence at Detection",
       legend: {position: 'top', maxLines: 5},
+      chartArea: {'width': '90%', 'height': '70%'},
       vAxis: {format: vformat,
               title: "Cumulative Incidence at Detection"},
       hAxis: {format:'#%',

@@ -393,10 +393,12 @@ some number of times.  Using a higher number here corresponds to
 requiring more certainty before raising an alarm.
 <tr><td>Sites:<td><input type=text id=sites value=1>
 <tr><td colspan=4 class=note>In this model you can parallelize across
-multiple sites, each of which works exactly the same way.  Note that
-we don't model the most obvious benefit of multiple sites, where each
-one has a chance of being a location where the epidemic is farther
-ahead.
+multiple sites, each of which works exactly the same way.  As a rough
+approximation, running twice as many sites will cost twice as much and
+detect at half the cumulative incidence.
+<p>Note that we don't model themost obvious benefit of multiple sites,
+where each one has a chance of being a location where the epidemic is
+farther ahead.
 <tr><td>Overhead (percentage)<td><input type=text id=overhead value=50>
 <tr><td colspan=4 class=note>Assume costs are higher than the inputs
 specified above by this fixed percentage.

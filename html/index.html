@@ -432,7 +432,17 @@ number of times, and display the results in a chart below.
   </div>
 </div>
 
-<table id=table_element border=1 cellpadding=5 class=hidden></table>
+<div id=table_div class=hidden>
+
+<p>
+
+Cumulative Incidence at Detection: when the system raises the alarm,
+what fraction of people do we estimate will have ever been infected?
+
+<p>
+
+<table id=table_element border=1 cellpadding=5></table>
+</div>
 
 <div id=chart_div></div>
 
@@ -1107,7 +1117,7 @@ clear.onclick = function() {
     chart.clearChart();
   }
   table_element.innerHTML = "";
-  table_element.classList.add("hidden");
+  table_div.classList.add("hidden");
   update_hash();
 }
 
@@ -1127,7 +1137,7 @@ function add_to_chart(outcomes) {
 
 function draw_chart() {
   clear.classList.remove("hidden");
-  table_element.classList.remove("hidden");
+  table_div.classList.remove("hidden");
 
   const data = [["Percentile"]];
   for (let i = 0; i < 100; i++) {
@@ -1166,20 +1176,36 @@ function draw_chart() {
       legend: {position: 'top', maxLines: 5},
       chartArea: {'width': '90%', 'height': '70%'},
       vAxis: {format: vformat,
-              title: "Cumulative Incidence at Detection"},
+              title: "Cumulative Incidence at Detection",
+              },
       hAxis: {format:'#%',
-              title: "Percentile"},
+              title: "Outcomes by Percentile" +
+              "\n(all outcomes, most optimistic to most pessimistic)"},
     });
 
 
   table_element.innerHTML = "";
+
   const table_header_tr = document.createElement("tr");
-  for (const table_header_val of ["Scenario", "Cost", "25th", "50th", "75th", "90th"]) {
+  for (const table_header_val of ["Scenario", "Cost", "Cumulative Incidence at Detection"]) {
     const table_header_th = document.createElement("th");
     table_header_th.innerText = table_header_val;
+    if (table_header_val.length < 10) {
+      table_header_th.setAttribute("rowspan", "2");
+    } else {
+      table_header_th.setAttribute("colspan", "4");
+    }
     table_header_tr.appendChild(table_header_th);
   }
   table_element.appendChild(table_header_tr);
+
+  const table_header2_tr = document.createElement("tr");
+  for (const table_header2_val of ["25th", "50th", "75th", "90th"]) {
+    const table_header2_th = document.createElement("th");
+    table_header2_th.innerText = table_header2_val;
+    table_header2_tr.appendChild(table_header2_th);
+  }
+  table_element.appendChild(table_header2_tr);
 
   for (const saved_outcome of saved_outcomes) {
     const scenario_tr = document.createElement("tr");

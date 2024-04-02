@@ -206,10 +206,11 @@ input[type=text] {
     <dt>Influenza A in Municipal Wastewater:
       <dd>We followed the same approach we detail above for
         SARS-CoV-2 municipal wastewater, except for the sequencing
-        data we used unpublished data collected by
-        an NAO partner in the 2023-2024 flu season.  When linked to
-        CDC data on Influenza A using the same Grimm et al. 2023
-        approach, this gave a mean <code>RA_i(1%)</code> of 1.7e-8.
+        data we used unpublished data collected by NAO and an NAO
+        partner in the 2023-2024 flu season.  When linked to CDC data
+        on Influenza A using the same Grimm et al. 2023 approach, this
+        gave a mean <code>RA_i(1%)</code> of 3.2e-8 (midpoint of
+        1.7e-8 and 4.6e-8).
     <dt>Influenza A Nasal/Throat Swabs:
       <dd>We took relative abundance values
         from <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6935926/">Lewandowski
@@ -767,11 +768,11 @@ window.simulate_one = simulate_one;
       }
     } else if (flu.checked) {
       if (wastewater.checked) {
-        // Started with 1.7e-8 from applying the methods from Grimm et
-        // al 2023 to sequencing data collected by an NAO partner in
+        // Started with 3.2e-8 from applying the methods from Grimm et
+        // al 2023 to sequencing data collected by NAO and an NAO partner in
         // the 2023-2024 flu season. Then, as with covid above, scaled
         // by 7/5 and 100.
-        shedding_values.value = "2.7e-6";
+        shedding_values.value = "4.4e-6";
       } else if (nasal.checked) {
         // Lewandowski et al. 2020 Figure 4, manually digitized
         shedding_values.value =

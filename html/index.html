@@ -46,11 +46,16 @@ input[type=text] {
 }
 @media screen and (min-width: 1400px) {
   #results {
-    padding-top: 1em;
     width: var(--right-pane-width);
     right: 0;
     top: 0;
     position: fixed;
+
+    height: 100vh;
+    overflow: scroll;
+  }
+  #results-inner {
+    padding-top: 1em;
   }
 }
 @media screen and (max-width: var(--right-pane-width)) {
@@ -415,6 +420,7 @@ number of times, and display the results in a chart below.
 </div>
 
 <div id=results>
+<div id=results-inner>
 
 <div id=input_errors class=hidden>
   To run the simulation, please fix the following invalid inputs:
@@ -448,6 +454,7 @@ and having more time to respond.
 
 <div id=chart_div></div>
 
+</div>
 </div>
 
 <script type=module>

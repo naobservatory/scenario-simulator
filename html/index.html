@@ -1153,7 +1153,7 @@ function draw_chart() {
       let v = saved_outcome.percentile_outcomes[i];
       max_outcome = Math.max(v, max_outcome);
       if (v > 0.3) {
-        v = 0;
+        v = null;
       }
       data[i+1].push(v);
     }
@@ -1181,6 +1181,7 @@ function draw_chart() {
               title: "Cumulative Incidence at Detection",
               },
       hAxis: {format:'#%',
+              viewWindow: {max: 1, min: 0},
               title: "Outcomes by Percentile" +
               "\n(all outcomes, most optimistic to most pessimistic)"},
     });

@@ -782,11 +782,27 @@ window.simulate_one = simulate_one;
         // by 7/5 and 100.
         shedding_values.value = "4.4e-6";
       } else if (nasal.checked) {
+        // Combined data from:
         // Lewandowski et al. 2020 Figure 4, manually digitized
+        // Graf et al. 2016 (IAV + IBV subset), manually digitized,
+        // converted from RPKM to RA
+        // Thorburn et al. 2016, Table 1
+        // Fischer et al. 2015, Table 2 (Swab samples only)
+        // Huang et al. 2019, Table S1
+
         shedding_values.value =
           "5e-6 5e-6 6e-6 7e-6 1e-5 1e-5 2e-5 3e-5 3e-5 3e-5 4e-5 3e-4 " +
           "3e-4 3e-4 3e-4 5e-4 6e-4 1e-3 4e-3 9e-3 1e-2 1e-2 2e-2 3e-2 " +
-          "4e-2 5e-2 5e-2 6e-2 2e-1 2e-1 3e-1 3e-1 4e-1 6e-1 6e-1 7e-1";
+          "4e-2 5e-2 5e-2 6e-2 2e-1 2e-1 3e-1 3e-1 4e-1 6e-1 6e-1 7e-1 " +
+          // Lewandowski et al. 2020
+          "2e-7 9e-7 2e-5 1e-5 1e-5 7e-5 5e-5 1e-2 6e-6 2e-5 9e-5 6e-4 " +
+          // Graf et al. 2016
+          "3e-4 " +
+          // Thorburn et al. 2016
+          "4e-6 2e-3 3e-2 6e-5 3e-4 8e-2 2e-4 2e-4 " +
+          // Fischer et al. 2015
+          "2e-4 1e-6 3e-5 2e-4 1e-5 3e-5 1e-3";
+          // Huang et al. 2019
       }
     }
     sigma_shedding_values.value = "0.05";

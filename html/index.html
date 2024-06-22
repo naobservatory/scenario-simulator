@@ -309,16 +309,28 @@ input[type=text] {
   <tr><td>Relative abundance:
     <td><textarea rows=5 cols=40 id=shedding_values></textarea>
     <td align=right>&#963;:<td><input type=text id=sigma_shedding_values>
-
-<tr><td colspan=4 class=note>If you ran metagenomic sequencing on a
-sample that was from just a single infected person, what fraction of
-sequencing reads would be from the pathogen?  This could be a single
-number to model all infected people as contributing an equal amount,
-or multiple space-separated numbers to represent a set of equally
-likely contribution amounts. For &#963; you specify the standard
-deviation of the log, giving per-simulation noise representing our
-uncertainty about whether the true relative abundance would be higher
-or lower.
+<tr><td colspan=4 class=note id=relab_text>If you ran metagenomic
+sequencing on a sample that was from just a single infected person,
+what fraction of sequencing reads would be from the pathogen?
+<tr><td colspan=4 class="note hidden" id=direct_relab_text>If
+you ran metagenomic sequencing on a sample that was from just a single
+infected person, what fraction of sequencing reads would have enough
+information to identify the read as concerning?
+<tr><td colspan=4 class=note>This
+could be a single number to model all infected people as contributing
+an equal amount, or multiple space-separated numbers to represent a
+set of equally likely contribution amounts. For &#963; you specify the
+standard deviation of the log, giving per-simulation noise
+representing our uncertainty about whether the true relative abundance
+would be higher or lower.
+<tr><td>Directly specify relative abundance of flaggable reads?<td><input
+   id=direct_flaggable type=checkbox>
+<tr><td colspan=4 class=note>Normally we discount the fraction of
+reads that are flaggable by considering the genome length, read
+length, and fragment quality.  If you're modeling these outside
+of this tool, however, and just want to specify this fraction
+directly, check this box and provide your fraction in the "relative
+abundance" box above.
 <tr><td>Shedding duration (days):
     <td><input type=text id=shedding_duration value=5>
 <td align=right>&#963;:<td><input type=text id=sigma_shedding_duration>
@@ -353,14 +365,15 @@ how many people are contributing?
 <tr><td colspan=4>
   <table>
   <tr>
+  <td><input type=radio name=sequencing id=nx25b><label for=nx25b>NovaSeq X 25B</label>
   <td><input type=radio name=sequencing id=nx10b><label for=nx10b>NovaSeq X 10B</label>
+  <td><input type=radio name=sequencing id=aviti><label for=aviti>Element Aviti 2x150</label>
+  <tr>
+  <td><input type=radio name=sequencing id=ns4><label for=ns4>NovaSeq 6000 S4</label>
   <td><input type=radio name=sequencing id=n6ksp3><label for=n6ksp3>NovaSeq 6000 SP 2x150</label>
   <td><input type=radio name=sequencing id=n6ksp5><label for=n6ksp5>NovaSeq 6000 SP 2x250</label>
   <tr>
-  <td><input type=radio name=sequencing id=aviti><label for=aviti>Element Aviti 2x150</label>
   <td><input type=radio name=sequencing id=nanopore><label for=nanopore>Nanopore MinION</label>
-  <td><input type=radio name=sequencing id=academic><label for=academic>University NovaSeq 6000 S4</label>
-  <tr>
   <td><input type=radio name=sequencing id=custom_sequencing><label for=custom_sequencing>Custom</label>
   </table>
   <tr><td>Sequencing run depth (reads):
@@ -560,6 +573,12 @@ function simulate_one() {
   // length as a fraction of the overall genome length.
   let fraction_useful_reads = read_length_usable / bp_genome_length;
 
+  if (direct_flaggable.checked) {
+    // The user has asked us to skip the calculation, and is providing
+    // an adjusted number in the relative abundance field.
+    fraction_useful_reads = 1;
+  }
+
   let v_processing_delay_factor = Math.pow(
     growth_factor, get_input(processing_delay));
   let n_reads = get_input(sample_depth);
@@ -706,6 +725,16 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   };
 
+  nx25b.onclick = function() {
+    read_length.value=300;
+    run_cost.value="23,000";
+    sample_depth.value="2.5e10";
+    processing_delay.value=4;
+    sample_weekly();
+    sequence_weekly();
+    set_custom_scenario();
+  };
+
   nx10b.onclick = function() {
     read_length.value=300;
     run_cost.value="13,000";
@@ -746,11 +775,11 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   };
 
-  academic.onclick = function() {
+  ns4.onclick = function() {
     read_length.value=300;
     run_cost.value="26,000";
-    sample_depth.value="9e9";
-    processing_delay.value=4*7;
+    sample_depth.value="8e9";
+    processing_delay.value=4;
     sample_weekly();
     sequence_weekly();
     set_custom_scenario();
@@ -808,6 +837,9 @@ window.simulate_one = simulate_one;
     sigma_shedding_values.value = "0.05";
     shedding_duration.value = 5;
     sigma_shedding_duration.value = "0.05";
+
+    direct_flaggable.checked = false;
+    update_direct_flaggable_impact();
   }
 
   covid.onclick = function() {
@@ -830,6 +862,7 @@ window.simulate_one = simulate_one;
     sample_population.value = 100;
     sample_cost.value = get_input(sample_population) * 8;
     low_quality.checked = false;
+    direct_flaggable.checked = false;
     set_shedding_values();
     set_custom_scenario();
   }
@@ -838,7 +871,14 @@ window.simulate_one = simulate_one;
     sample_cost.value = "200";
     sample_population.value = "500,000";
     low_quality.checked = true;
+    direct_flaggable.checked = false;
     set_shedding_values();
+    set_custom_scenario();
+  }
+
+  direct_flaggable.onclick = function() {
+    shedding_values.value = "";
+    update_direct_flaggable_impact();
     set_custom_scenario();
   }
 
@@ -1001,6 +1041,15 @@ function update_cost() {
 }
 update_cost();
 
+function update_direct_flaggable_impact() {
+  relab_text.classList.toggle("hidden", direct_flaggable.checked);
+  direct_relab_text.classList.toggle("hidden", !direct_flaggable.checked);
+  low_quality.disabled =
+      read_length.disabled =
+      genome_length.disabled = 
+      direct_flaggable.checked;
+}
+
 function validate_all_inputs() {
   for (const input of document.querySelectorAll("input")) {
     if (input.type == "text") {
@@ -1008,6 +1057,7 @@ function validate_all_inputs() {
     }
   }
   validate(shedding_values);
+  update_direct_flaggable_impact();
   update_run_enablement();
 }
 
@@ -1023,6 +1073,7 @@ for (const input of document.querySelectorAll("input")) {
       custom_pathogen.checked = true;
       custom_scenario.checked = true;
     } else if (input == low_quality ||
+               input == direct_flaggable ||
                input == sample_population ||
                input == sample_cost) {
       custom_sampling.checked = true;

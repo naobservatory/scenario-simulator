@@ -1141,8 +1141,8 @@ function validate(input) {
   if (input == shedding_values) {
     for (const sv of input.value.split(" ")) {
       if (!is_float(sv) ||
-          Number.parseFloat(sv) >= 1 ||
-          Number.parseFloat(sv) <= 0) {
+          Number.parseFloat(sv) > 1 ||
+          Number.parseFloat(sv) < 0) {
         input.classList.add("invaid");
         invalid_inputs.add(input);
       }

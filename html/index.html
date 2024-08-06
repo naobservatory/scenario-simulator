@@ -771,11 +771,11 @@ window.simulate_one = simulate_one;
       } else if (nasal.checked) {
         // Lu et al 2021, Babiker et al. 2020, Mostafa et al. 2020, Rodriguez et al. 2021.
         // Data is adjusted in the following way:
-        //  1. Dropping samples from ICU patients, and individuals on
+        //  1. Dropping samples from ICU patients, individuals on
         //     ventilators, and those with unknown patient status.
         //  2. Linear regression fitted between qPCR and relative abundance
         //     data.
-        //  3. qPCR data are adjusted to represent nasal swabs by applying a
+        //  3. qPCR data adjusted to represent nasal swabs by applying a
         //     +1.43 CT adjustment to NP swab samples and a -0.92 CT
         //     adjustment to OP samples.
         //  4. The adjusted qPCR is converted back to relative abundance with

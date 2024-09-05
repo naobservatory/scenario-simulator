@@ -342,7 +342,7 @@ standard deviation of the log.
 <tr><td colspan=4 class=note>When sequencing wastewater the nucleic acid
 fragments tend to be pretty torn up by the hostile environment, making
 it difficult to get much value from long-read sequencing.  If this box
-is checked we assume that sequencing reads won't be longer than 170bp
+is checked we assume that sequencing reads won't be longer than 120bp
 even if you're using a sequencing machine capable of producing longer
 ones when given good material.
 <tr><td>Sample population (people):
@@ -470,6 +470,15 @@ and having more time to respond.
 </div>
 </div>
 
+<!-- exports the variable coverage_distribution -->
+<script src="coverage-distribution.js"></script>
+<script>
+  let coverage_distribution_genome_length = 0
+  for (obs in coverage_distribution) {
+    coverage_distribution_genome_length += coverage_distribution[obs];
+  }
+</script>
+
 <script type=module>
 import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';
 import normal from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-normal@esm/index.mjs';
@@ -565,13 +574,40 @@ function simulate_one() {
     read_length_usable = Math.min(read_length_usable, 170);
   }
 
-  // The detection model here is that there is some small section of
-  // the target genome that's suspicious, perhaps a junction between a
-  // human virus and an artificial section. A typical short read is
-  // not going to happen to hit this suspicious section. Very roughly,
-  // the fraction of reads that do hit this section will be the read
-  // length as a fraction of the overall genome length.
-  let fraction_useful_reads = read_length_usable / bp_genome_length;
+  // The detection model here is that there is some small section of the target
+  // genome that's suspicious, perhaps a junction between a human virus and an
+  // artificial section. A typical short read is not going to happen to hit
+  // this suspicious section, so we need to estimate which fraction will.
+  //
+  // We calculated coverage_distribution from 10k illumina wastewater metagenomic
+  // sequencing reads mapping to the SARS-CoV-2 genome, counting for each
+  // position in the genome how many times it was observed and dividing by the
+  // total number of observations of the genome.
+  //
+  // To use it, first we pick an element in proportion to its frequency, then
+  // adjust for how the current scenario differs from SARS-CoV-2 + Wastewater +
+  // Illumina.
+
+  const target = Math.random() * coverage_distribution_genome_length;
+  let observed_so_far = 0;
+  let selected_raw_fraction_useful_reads = undefined;
+  for (const possible_raw_fraction_useful_reads in coverage_distribution) {
+    observed_so_far += coverage_distribution[possible_raw_fraction_useful_reads];
+    if (observed_so_far >= target) {
+      selected_raw_fraction_useful_reads =
+          Number.parseFloat(possible_raw_fraction_useful_reads);
+      break;
+    }
+  }
+  if (selected_raw_fraction_useful_reads === undefined) {
+    throw new Error("failed to select fraction_useful_reads");
+  }
+  
+  let fraction_useful_reads = selected_raw_fraction_useful_reads *
+      // more are useful if the scenario has a shorter genome
+      (coverage_distribution_genome_length / bp_genome_length) *
+      // more are useful if the scenario has longer reads
+      (read_length_usable / 170);
 
   if (direct_flaggable.checked) {
     // The user has asked us to skip the calculation, and is providing

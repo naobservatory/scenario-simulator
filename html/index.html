@@ -798,10 +798,39 @@ window.simulate_one = simulate_one;
         // sampled from a randomly selected sick person.
         shedding_values.value = "1.8e-5";
       } else if (nasal.checked) {
-        // Lu et al 2021 Table S1
+        // Lu et al 2021, Babiker et al. 2020, Mostafa et al. 2020, Rodriguez et al. 2021.
+        // Data is adjusted in the following way:
+        //  1. Dropping samples from ICU patients, individuals on
+        //     ventilators, and those with unknown patient status.
+        //  2. Linear regression fitted between qPCR and relative abundance
+        //     data.
+        //  3. qPCR data adjusted to represent nasal swabs by applying a
+        //     +1.43 CT adjustment to NP swab samples and a -0.92 CT
+        //     adjustment to OP samples.
+        //  4. The adjusted qPCR is converted back to relative abundance with
+        //     the linear regression created in step 2.
+        //  5. Relative abundances that were 0 in the original data are set to
+        //     0 in the adjusted data.
+        // More information on the data can be found here:
+        // https://naobservatory.org/blog/investigating-the-sensitivity-of-pooled-swab-sampling-for-pathogen-early-detection
         shedding_values.value =
-          "5e-06 1e-04 2e-04 3e-04 7e-04 8e-04 1e-03 6e-03 8e-03 " +
-          "1e-02 2e-02 3e-02 7e-02 4e-01 8e-01";
+          "0 0 0 0 0 0 0 0 0 0 " +
+          "0 3e-07 4e-07 8e-07 1e-06 1e-06 2e-06 2e-06 2e-06 " +
+          "4e-06 4e-06 4e-06 5e-06 5e-06 7e-06 7e-06 7e-06 7e-06 " +
+          "9e-06 9e-06 9e-06 1e-05 1e-05 1e-05 1e-05 1e-05 1e-05 " +
+          "1e-05 2e-05 2e-05 2e-05 2e-05 3e-05 4e-05 4e-05 4e-05 " +
+          "5e-05 5e-05 5e-05 6e-05 7e-05 8e-05 8e-05 1e-04 1e-04 " +
+          "1e-04 1e-04 2e-04 2e-04 2e-04 2e-04 2e-04 2e-04 2e-04 " +
+          "2e-04 3e-04 3e-04 3e-04 3e-04 4e-04 4e-04 4e-04 4e-04 " +
+          "4e-04 4e-04 4e-04 4e-04 5e-04 5e-04 5e-04 5e-04 6e-04 " +
+          "6e-04 6e-04 7e-04 7e-04 7e-04 7e-04 7e-04 9e-04 9e-04 " +
+          "1e-03 1e-03 1e-03 1e-03 1e-03 1e-03 1e-03 2e-03 2e-03 " +
+          "2e-03 2e-03 3e-03 3e-03 3e-03 3e-03 4e-03 4e-03 4e-03 " +
+          "4e-03 5e-03 5e-03 5e-03 5e-03 5e-03 6e-03 6e-03 7e-03 " +
+          "8e-03 9e-03 9e-03 1e-02 1e-02 1e-02 1e-02 2e-02 2e-02 " +
+          "2e-02 3e-02 3e-02 3e-02 4e-02 4e-02 4e-02 5e-02 5e-02 " +
+          "6e-02 6e-02 7e-02 8e-02 1e-01 1e-01 2e-01 2e-01 3e-01 " +
+          "4e-01 6e-01 6e-01 7e-01 ";
       }
     } else if (flu.checked) {
       if (wastewater.checked) {

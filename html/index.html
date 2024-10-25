@@ -140,14 +140,16 @@ input[type=text] {
           specified threshold number of sequencing reads that match a
           specific portion of the target genome is accumulated.
 
-      <li><p>The tool assumes that sequencing reads are equally likely
-          to come from any part of the pathogen's genome. It simulates
-          many times (1,000 by default) and charts the range of
-          cumulative incidences observed. Any outcomes where the
-          cumulative incidence is over 30% are marked as a failure by
-          showing a "0"; on the chart. The simulation is not
-          correct for high cumulative incidence, as it only models the
-          initial exponential stage of the epidemic.
+      <li><p>The tool assumes that sequencing reads are moderately unevenly
+          distributed along the pathogen's genome, following the coverage
+          distribution we observe for SARS-CoV-2 in unpublished MU data.
+
+      <li><p>The tool simulates many times (1,000 by default) and charts the
+          range of cumulative incidences observed. Any outcomes where the
+          cumulative incidence is over 30% are marked as a failure by showing a
+          "0"; on the chart. The simulation is not correct for high cumulative
+          incidence, as it only models the initial exponential stage of the
+          epidemic.
 
       <li><p>Certain values allow you to specify how much noise to add
           to the model.  The noise is generated once per simulation.

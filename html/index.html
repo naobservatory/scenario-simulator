@@ -159,10 +159,11 @@ input[type=text] {
           high-percentile outputs to be more pessimistic.
 
       <li><p>If we're starting with a set of individual-level relative
-          abundances we add lognormally distributed noise to the abundances
-          with a geometric mean of zero and standard deviation of
-          &#963;<sub>g</sub>.  This noise shifts all provided values in the
-          same direction.  For example, if in one of the 1,000 simulations our
+          abundances we multiply them by lognormally distributed noise with
+          &#956;=0 and &#963;=&#963;<sub>g</sub>. This noise shifts all
+          provided values in the same direction to represent our uncertainty
+          about whether these relative abundances are systematically too high
+          or low.  For example, if in one of the 1,000 simulations our
           lognormal draw gives us a noise value of is 0.7 and the provided
           values are 1e-5 and 1e-6, for that simulation each time someone is
           sick we'll pick one of 7e-6 and 7e-7.
@@ -170,10 +171,10 @@ input[type=text] {
       <li><p>On the other hand, if we're starting with an imported
           RA<sub>i</sub>(1%) distribution we draw from the distribution once
           for each simulation.  For example, if in one of the 1,000 simulations
-          our RA<sub>i</sub>(1%) draw gives us 1e-7, then we'll assume that
-          when 1% of people became infected in the last week then 1e-7 of
-          sequencing reads (subject to the Poisson noise described above) match
-          the pathogen.
+          our RA<sub>i</sub>(1%) draw gives us 1e-7, then when 1% of people
+          became infected in the last week we'll draw the number of sequencing
+          reads that match the pathogen from a Poisson distribution with a mean
+          of the total number of sequencing reads times 1e-7.
 
   </details>
 
@@ -289,25 +290,25 @@ input[type=text] {
 <tr><td>Genome length (bp):<td><input type=text id=genome_length>
 <tr><td colspan=4>
   <input type=radio name=sampling
-         id=ww_rothman_scv2><label for=ww_rothman_scv2>Wastewater SARS-CoV-2</label>
+         id=ww_rothman_scv2><label for=ww_rothman_scv2>SARS-CoV-2 in Wastewater 
+         with Rothman et al. 2021 Sequencing</label>
          (<a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v3">source</a>)<br>
   <input type=radio name=sampling
-         id=ww_flu_a_mu><label for=ww_flu_a_mu>Wastewater Flu A MU</label>
-         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)
-  <input type=radio name=sampling
-         id=ww_flu_b_mu><label for=ww_flu_b_mu>Wastewater Flu B MU</label>
+         id=ww_flu_a_mu><label for=ww_flu_a_mu>Flu A in Wastewater with MU Sequencing</label>
          (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)<br>
   <input type=radio name=sampling
-         id=ww_flu_a_uci><label for=ww_flu_a_uci>Wastewater Flu A UCI</label>
-         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)
-  <input type=radio name=sampling
-         id=ww_flu_b_uci><label for=ww_flu_b_uci>Wastewater Flu B UCI</label>
+         id=ww_flu_b_mu><label for=ww_flu_b_mu>Flu B in Wastewater with MU Sequencing</label>
          (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)<br>
-  <input type=radio name=sampling id=nasal_scv2><label for=nasal_scv2>Nasal and/or Throat
-         Swabs, SARS-CoV-2</label>
+  <input type=radio name=sampling
+         id=ww_flu_a_uci><label for=ww_flu_a_uci>Flu A in Wastewater with UCI Sequencing</label>
+         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)<br>
+  <input type=radio name=sampling
+         id=ww_flu_b_uci><label for=ww_flu_b_uci>Flu B in Wastewater with UCI sequencing</label>
+         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)<br>
+  <input type=radio name=sampling id=nasal_scv2><label
+  for=nasal_scv2>SARS-CoV-2 in Nasal and/or Throat Swabs</label>
          (<a href="https://naobservatory.org/blog/investigating-the-sensitivity-of-pooled-swab-sampling-for-pathogen-early-detection">source</a>)<br>
-  <input type=radio name=sampling id=nasal_flu><label for=nasal_flu>Nasal and/or Throat
-         Swabs, Flu A</label>
+  <input type=radio name=sampling id=nasal_flu><label for=nasal_flu>Flu A in Nasal and/or Throat Swabs</label>
          (<a href="https://naobservatory.org/blog/investigating-the-sensitivity-of-pooled-swab-sampling-for-pathogen-early-detection">source</a>)<br>
   <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label><br>
   <tr class=ra><td>Relative abundance:
@@ -982,6 +983,7 @@ window.simulate_one = simulate_one;
   }
 
   custom_sampling.onclick = function() {
+    shedding_values.value = "";
     set_shedding_values();
     set_custom_scenario();
   }

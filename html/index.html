@@ -159,13 +159,12 @@ input[type=text] {
           high-percentile outputs to be more pessimistic.
 
       <li><p>If we're starting with a set of individual-level relative
-          abundances we add lognormally distributed noise to the abundances
-          with a geometric mean of zero and standard deviation of
-          &#963;<sub>g</sub>.  This noise shifts all provided values in the
-          same direction.  For example, if in one of the 1,000 simulations our
-          lognormal draw gives us a noise value of is 0.7 and the provided
-          values are 1e-5 and 1e-6, for that simulation each time someone is
-          sick we'll pick one of 7e-6 and 7e-7.
+          abundances we multiply them by lognormally distributed noise with
+          &#956;=0 and &#963;=&#963;<sub>g</sub>. This noise shifts all
+          provided values in the same direction.  For example, if in one of the
+          1,000 simulations our lognormal draw gives us a noise value of is 0.7
+          and the provided values are 1e-5 and 1e-6, for that simulation each
+          time someone is sick we'll pick one of 7e-6 and 7e-7.
 
       <li><p>On the other hand, if we're starting with an imported
           RA<sub>i</sub>(1%) distribution we draw from the distribution once

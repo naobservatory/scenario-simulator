@@ -169,10 +169,10 @@ input[type=text] {
       <li><p>On the other hand, if we're starting with an imported
           RA<sub>i</sub>(1%) distribution we draw from the distribution once
           for each simulation.  For example, if in one of the 1,000 simulations
-          our RA<sub>i</sub>(1%) draw gives us 1e-7, then we'll assume that
-          when 1% of people became infected in the last week then 1e-7 of
-          sequencing reads (subject to the Poisson noise described above) match
-          the pathogen.
+          our RA<sub>i</sub>(1%) draw gives us 1e-7, then when 1% of people
+          became infected in the last week we'll draw the number of sequencing
+          reads that match the pathogen from a Poisson distribution with a mean
+          of the total number of sequencing reads times 1e-7.
 
   </details>
 

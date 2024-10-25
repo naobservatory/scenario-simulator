@@ -158,14 +158,23 @@ input[type=text] {
           the low-percentile outputs to be more optimistic and the
           high-percentile outputs to be more pessimistic.
 
-      <li><p>For the relative abundance amounts, we add lognormally
-          distributed noise with a geometric mean of zero and standard
-          deviation of &#963;<sub>g</sub>.  This noise shifts all
-          provided values in the same direction.  For example, if in
-          one of the 1,000 simulations our lognormal draw gives us a
-          noise value of is 0.7 and the provided values are
-          1e-5 and 1e-6, for that simulation we'll use 7e-6 and 7e-7
-          instead.
+      <li><p>If we're starting with a set of individual-level relative
+          abundances we add lognormally distributed noise to the abundances
+          with a geometric mean of zero and standard deviation of
+          &#963;<sub>g</sub>.  This noise shifts all provided values in the
+          same direction.  For example, if in one of the 1,000 simulations our
+          lognormal draw gives us a noise value of is 0.7 and the provided
+          values are 1e-5 and 1e-6, for that simulation each time someone is
+          sick we'll pick one of 7e-6 and 7e-7.
+
+      <li><p>On the other hand, if we're starting with an imported
+          RA<sub>i</sub>(1%) distribution we draw from the distribution once
+          for each simulation.  For example, if in one of the 1,000 simulations
+          our RA<sub>i</sub>(1%) draw gives us 1e-7, then we'll assume that
+          when 1% of people became infected in the last week then 1e-7 of
+          sequencing reads (subject to the Poisson noise described above) match
+          the pathogen.
+
   </details>
 
 <p>
@@ -187,42 +196,22 @@ input[type=text] {
 
   <dl>
     <dt>SARS-CoV-2 in Municipal Wastewater:
-      <dd>We started
-        with <a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v1.full">Grimm
-          et al. 2023</a>'s mean weekly <code>RA_i(1%)</code> estimate of
-        1.3e-7 for SARS-CoV-2 in municipal wastewater that assumed
-        sampling and sequencing similar
+      <dd><p>We use our <a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v1.full">Grimm
+          et al. 2023</a>'s distribution for RA<sub>i</sub>(1%) assuming sampling and sequencing similar
         to <a href="https://pubmed.ncbi.nlm.nih.gov/34550753/">Rothman
-          et al. 2021</a>. We converted that estimate to an <code>RA_p(1%)</code>
-        by scaling by 7/5, under the assumption that people might shed
-        the virus for five days. Finally, we scaled it by 100x to get
-        the relative abundance contribution of an individual infected
-        person.
-    <dt>SARS-CoV in Nasal/Throat Swabs:
-      <dd>We took relative abundance values
-        from <a href="https://www.nature.com/articles/s41421-021-00248-3">Lu
-          et al. 2021</a>'s table S1, which provides sequencing
-        results for SARS-CoV-2 from sixteen metagenomic samples
-        collected from COVID-19 patients hospitalized in China
-        (<a href="https://www.jefftk.com/p/sequencing-swabs">blog
-          post</a>).  We treated each value as equally likely, and
-        the simulator selects one at random each time it models
-        an infected person.
-    <dt>Influenza A in Municipal Wastewater:
-      <dd>We followed the same approach we detail above for
-        SARS-CoV-2 municipal wastewater, except for the sequencing
-        data we used unpublished data collected by the NAO and an NAO
-        partner in the 2023-2024 flu season.  When linked to CDC data
-        on Influenza A using the same Grimm et al. 2023 approach, this
-        gave a mean <code>RA_i(1%)</code> of 3.2e-8.
-    <dt>Influenza A Nasal/Throat Swabs:
-      <dd>We took relative abundance values
-        from <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6935926/">Lewandowski
-          et al. 2020</a> Figure 4 (n=39).  As with SARS-CoV
-        Nasal/Throat above, we treat each outcome as equally
-        likely. Note, however, that this isn't an ideal source: the
-        authors chose which samples to sequence by trying to cover
-        their full observed Ct range.
+          et al. 2021</a>.
+    <dt>Influenza in Municipal Wastewater:
+      <dd><p>We use the distributions we calculated
+      in <a href="https://naobservatory.org/blog/predicting-influenza-abundance">Predicting
+      Influenza Abundance in Wastewater Metagenomic Sequencing Data</a> for
+      RA<sub>i</sub>(1%), based on applying the methods
+      from <a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v1.full">Grimm
+      et al. 2023</a> to unpublished MU and UCI sequencing data.
+    <dt>Nasal/Throat Swabs:
+      <dd><p>We use the individual-level relative abundances we collected
+      in <a href="https://naobservatory.org/blog/investigating-the-sensitivity-of-pooled-swab-sampling-for-pathogen-early-detection">Investigating
+      the Sensitivity of Pooled Swab Sampling for Pathogen Early Detection</a>,
+      treating each outcome as equally likely.
   </dl>
   </details>
 <p>
@@ -284,57 +273,72 @@ input[type=text] {
 <tr><th colspan=4>Scenario
 <tr><td colspan=4>
   <input type=radio name=scenario id=scenario_ww_c><label for=scenario_ww_c
-      >Covid WW $1M/y</label>
+      >Covid Wastewater $1M/y</label>
   <input type=radio name=scenario id=scenario_ns_c_1m><label for=scenario_ns_c_1m
-      >Covid Nasal Nanopore $1M/y</label>
+      >Covid Nasal Nanopore $1M/y</label><br>
   <input type=radio name=scenario id=scenario_ww_f><label for=scenario_ww_f
-      >Flu WW $1M/y</label>
+      >Flu Wastewater $1M/y</label>
   <input type=radio name=scenario id=scenario_ns_f_1m><label for=scenario_ns_f_1m
-      >Flu Nasal Nanopore $1M/y</label>
+      >Flu Nasal Nanopore $1M/y</label><br>
   <input type=radio name=scenario id=custom_scenario><label for=custom_scenario
       >Custom</label>
-<tr><th colspan=4>Pathogen
+<tr><th colspan=4>Pathogen and Sampling
 <tr><td colspan=4>
-  <input type=radio name=pathogen id=covid><label for=covid>SARS-CoV-2</label>
-  <input type=radio name=pathogen id=flu><label for=flu>Influenza A</label>
-  <input type=radio name=pathogen id=custom_pathogen><label for=custom_pathogen>Custom</label>
   <tr><td>Doubling time (days):<td><input type=text id=doubling_time>
       <td align=right>CV:<td><input type=text id=cv_doubling_time>
 <tr><td>Genome length (bp):<td><input type=text id=genome_length>
-<tr><th colspan=4>Sampling
 <tr><td colspan=4>
-  <input type=radio name=sampling id=wastewater><label for=wastewater>Wastewater</label>
-  <input type=radio name=sampling id=nasal><label for=nasal>Nasal and/or Throat Swabs</label>
-  <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label>
-  <tr><td>Relative abundance:
+  <input type=radio name=sampling
+         id=ww_rothman_scv2><label for=ww_rothman_scv2>Wastewater SARS-CoV-2</label>
+         (<a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v3">source</a>)<br>
+  <input type=radio name=sampling
+         id=ww_flu_a_mu><label for=ww_flu_a_mu>Wastewater Flu A MU</label>
+         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)
+  <input type=radio name=sampling
+         id=ww_flu_b_mu><label for=ww_flu_b_mu>Wastewater Flu B MU</label>
+         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)<br>
+  <input type=radio name=sampling
+         id=ww_flu_a_uci><label for=ww_flu_a_uci>Wastewater Flu A UCI</label>
+         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)
+  <input type=radio name=sampling
+         id=ww_flu_b_uci><label for=ww_flu_b_uci>Wastewater Flu B UCI</label>
+         (<a href="https://naobservatory.org/blog/predicting-influenza-abundance">source</a>)<br>
+  <input type=radio name=sampling id=nasal_scv2><label for=nasal_scv2>Nasal and/or Throat
+         Swabs, SARS-CoV-2</label>
+         (<a href="https://naobservatory.org/blog/investigating-the-sensitivity-of-pooled-swab-sampling-for-pathogen-early-detection">source</a>)<br>
+  <input type=radio name=sampling id=nasal_flu><label for=nasal_flu>Nasal and/or Throat
+         Swabs, Flu A</label>
+         (<a href="https://naobservatory.org/blog/investigating-the-sensitivity-of-pooled-swab-sampling-for-pathogen-early-detection">source</a>)<br>
+  <input type=radio name=sampling id=custom_sampling><label for=custom_sampling>Custom</label><br>
+  <tr class=ra><td>Relative abundance:
     <td><textarea rows=5 cols=40 id=shedding_values></textarea>
     <td align=right>&#963;:<td><input type=text id=sigma_shedding_values>
-<tr><td colspan=4 class=note id=relab_text>If you ran metagenomic
+<tr class=ra><td colspan=4 class=note id=relab_text>If you ran metagenomic
 sequencing on a sample that was from just a single infected person,
 what fraction of sequencing reads would be from the pathogen?
-<tr><td colspan=4 class="note hidden" id=direct_relab_text>If
+<tr class=ra><td colspan=4 class="note hidden" id=direct_relab_text>If
 you ran metagenomic sequencing on a sample that was from just a single
 infected person, what fraction of sequencing reads would have enough
 information to identify the read as concerning?
-<tr><td colspan=4 class=note>This
+<tr class=ra><td colspan=4 class=note>This
 could be a single number to model all infected people as contributing
 an equal amount, or multiple space-separated numbers to represent a
 set of equally likely contribution amounts. For &#963; you specify the
 standard deviation of the log, giving per-simulation noise
 representing our uncertainty about whether the true relative abundance
 would be higher or lower.
-<tr><td>Directly specify relative abundance of flaggable reads?<td><input
+<tr class=ra><td>Directly specify relative abundance of flaggable reads?<td><input
    id=direct_flaggable type=checkbox>
-<tr><td colspan=4 class=note>Normally we discount the fraction of
+<tr class=ra><td colspan=4 class=note>Normally we discount the fraction of
 reads that are flaggable by considering the genome length, read
 length, and fragment quality.  If you're modeling these outside
 of this tool, however, and just want to specify this fraction
 directly, check this box and provide your fraction in the "relative
 abundance" box above.
-<tr><td>Shedding duration (days):
+<tr class=ra><td>Shedding duration (days):
     <td><input type=text id=shedding_duration value=5>
 <td align=right>&#963;:<td><input type=text id=sigma_shedding_duration>
-<tr><td colspan=4 class=note>Once someone is infected, how many days do they
+<tr class=ra><td colspan=4 class=note>Once someone is infected, how many days do they
 shed for?  This is a simplified model where we assume people shed
 equally throughout their infection. For &#963;, specify the
 standard deviation of the log.
@@ -602,7 +606,7 @@ function simulate_one() {
   if (selected_raw_fraction_useful_reads === undefined) {
     throw new Error("failed to select fraction_useful_reads");
   }
-  
+
   let fraction_useful_reads = selected_raw_fraction_useful_reads *
       // more are useful if the scenario has a shorter genome
       (coverage_distribution_genome_length / bp_genome_length) *
@@ -822,18 +826,18 @@ window.simulate_one = simulate_one;
   };
 
   function set_shedding_values() {
-    if (covid.checked) {
-      if (wastewater.checked) {
-        // Started with 1.3e-7 RA_i(1%) for SARA-CoV-2 from Grimm et al 2023.
-        // Then:
-        //  * Scaled by 7/5 (reciprocal of shedding duration in weeks)
-        //    to convert from RA_i(1%), incidence, to RA_p(1%),
-        //    prevalence.
-        //  * Scaled by 100 to convert from RA_p(1%) to RA_p(100%).
-        // Now it represents the relative abundance we'd expect if we
-        // sampled from a randomly selected sick person.
-        shedding_values.value = "1.8e-5";
-      } else if (nasal.checked) {
+    let is_named_distribution = true;
+    if (ww_flu_a_mu.checked) {
+      shedding_values.value = "MU-11320";
+    } else if (ww_flu_b_mu.checked) {
+      shedding_values.value = "MU-11520";
+    } else if (ww_flu_a_uci.checked) {
+      shedding_values.value = "UCI-11320";
+    } else if (ww_flu_b_uci.checked) {
+      shedding_values.value = "UCI-11520";
+    } else if (ww_rothman_scv2.checked) {
+      shedding_values.value = "Rothman-2697049";
+    } else if (nasal_scv2.checked) {
         // Lu et al 2021, Babiker et al. 2020, Mostafa et al. 2020, Rodriguez et al. 2021.
         // Data is adjusted in the following way:
         //  1. Dropping samples from ICU patients, individuals on
@@ -867,15 +871,8 @@ window.simulate_one = simulate_one;
           "2e-02 3e-02 3e-02 3e-02 4e-02 4e-02 4e-02 5e-02 5e-02 " +
           "6e-02 6e-02 7e-02 8e-02 1e-01 1e-01 2e-01 2e-01 3e-01 " +
           "4e-01 6e-01 6e-01 7e-01 ";
-      }
-    } else if (flu.checked) {
-      if (wastewater.checked) {
-        // Started with 3.2e-8 from applying the methods from Grimm et
-        // al 2023 to sequencing data collected by NAO and an NAO partner in
-        // the 2023-2024 flu season. Then, as with covid above, scaled
-        // by 7/5 and 100.
-        shedding_values.value = "4.4e-6";
-      } else if (nasal.checked) {
+      is_named_distribution = false;
+    } else if (nasal_flu.checked) {
         // Combined data from:
         // Lewandowski et al. 2020 Figure 4, manually digitized
         // Graf et al. 2016 (IAV + IBV subset), manually digitized,
@@ -897,8 +894,21 @@ window.simulate_one = simulate_one;
           // Fischer et al. 2015
           "2e-4 1e-6 3e-5 2e-4 1e-5 3e-5 1e-3";
           // Huang et al. 2019
-      }
+      is_named_distribution = false;
+    } else if (custom_sampling.checked) {
+      is_named_distribution = false;
     }
+
+    shedding_values.disabled = is_named_distribution;
+    sigma_shedding_values.disabled = is_named_distribution;
+    shedding_duration.disabled = is_named_distribution;
+    sigma_shedding_duration.disabled = is_named_distribution;
+    direct_flaggable.disabled = is_named_distribution;
+
+    for (const el of document.getElementsByClassName("ra")) {
+      el.style.display = is_named_distribution ? "none" : "table-row";
+    }
+
     sigma_shedding_values.value = "0.05";
     shedding_duration.value = 5;
     sigma_shedding_duration.value = "0.05";
@@ -907,36 +917,31 @@ window.simulate_one = simulate_one;
     update_direct_flaggable_impact();
   }
 
-  covid.onclick = function() {
-    doubling_time.value = 3;
-    cv_doubling_time.value = "10%";
-    genome_length.value = "30,000";
-    set_shedding_values();
-    set_custom_scenario();
-  }
-
-  flu.onclick = function() {
-    doubling_time.value = 3;
-    cv_doubling_time.value = "10%";
-    genome_length.value = "14,000";
-    set_shedding_values();
-    set_custom_scenario();
-  }
-
-  nasal.onclick = function() {
+  function select_nasal() {
     sample_population.value = 100;
     sample_cost.value = get_input(sample_population) * 8;
     low_quality.checked = false;
-    direct_flaggable.checked = false;
-    set_shedding_values();
-    set_custom_scenario();
   }
 
-  wastewater.onclick = function() {
+  function select_ww() {
     sample_cost.value = "200";
     sample_population.value = "500,000";
     low_quality.checked = true;
-    direct_flaggable.checked = false;
+  }
+
+  function select_scv2() {
+    doubling_time.value = 3;
+    cv_doubling_time.value = "10%";
+    genome_length.value = "30,000";
+  }
+
+  function select_flu() {
+    doubling_time.value = 3;
+    cv_doubling_time.value = "10%";
+    genome_length.value = "14,000";
+  }
+
+  custom_sampling.onclick = function() {
     set_shedding_values();
     set_custom_scenario();
   }
@@ -947,12 +952,59 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   }
 
+  ww_rothman_scv2.onclick = function() {
+    select_ww();
+    select_scv2();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
+  ww_flu_a_mu.onclick = function() {
+    select_ww();
+    select_flu();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
+  ww_flu_b_mu.onclick = function() {
+    select_ww();
+    select_flu();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
+  ww_flu_a_uci.onclick = function() {
+    select_ww();
+    select_flu();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
+  ww_flu_b_uci.onclick = function() {
+    select_ww();
+    select_flu();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
+  nasal_scv2.onclick = function() {
+    select_nasal();
+    select_scv2();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
+  nasal_flu.onclick = function() {
+    select_nasal();
+    select_flu();
+    set_custom_scenario();
+    set_shedding_values();
+  }
+
   let auto_label = "";
   scenario_ww_c.onclick = function() {
-    covid.onclick();
-    covid.checked = true;
-    wastewater.onclick();
-    wastewater.checked = true;
+    ww_rothman_scv2.onclick();
+    ww_rothman_scv2.checked = true;
     nx10b.onclick();
     nx10b.checked = true;
     sites.value = 1;
@@ -966,10 +1018,8 @@ window.simulate_one = simulate_one;
   }
 
   scenario_ns_c_1m.onclick = function() {
-    covid.onclick();
-    covid.checked = true;
-    nasal.onclick();
-    nasal.checked = true;
+    nasal_scv2.onclick();
+    nasal_scv2.checked = true;
     nanopore.onclick();
     nanopore.checked = true;
     sites.value = 2;
@@ -983,10 +1033,8 @@ window.simulate_one = simulate_one;
   }
 
   scenario_ww_f.onclick = function() {
-    flu.onclick();
-    flu.checked = true;
-    wastewater.onclick();
-    wastewater.checked = true;
+    ww_flu_a_mu.onclick();
+    ww_flu_a_mu.checked = true;
     nx10b.onclick();
     nx10b.checked = true;
     sites.value = 1;
@@ -1000,10 +1048,8 @@ window.simulate_one = simulate_one;
   }
 
   scenario_ns_f_1m.onclick = function() {
-    flu.onclick();
-    flu.checked = true;
-    nasal.onclick();
-    nasal.checked = true;
+    nasal_flu.onclick();
+    nasal_flu.checked = true;
     nanopore.onclick();
     nanopore.checked = true;
     sites.value = 2;
@@ -1111,7 +1157,7 @@ function update_direct_flaggable_impact() {
   direct_relab_text.classList.toggle("hidden", !direct_flaggable.checked);
   low_quality.disabled =
       read_length.disabled =
-      genome_length.disabled = 
+      genome_length.disabled =
       direct_flaggable.checked;
 }
 
@@ -1204,12 +1250,20 @@ function validate(input) {
   input.classList.remove("invalid");
   invalid_inputs.delete(input);
   if (input == shedding_values) {
-    for (const sv of input.value.split(" ")) {
-      if (!is_float(sv) ||
-          Number.parseFloat(sv) > 1 ||
-          Number.parseFloat(sv) < 0) {
-        input.classList.add("invaid");
-        invalid_inputs.add(input);
+    if (input.value == "MU-11320" ||
+        input.value == "MU-11520" ||
+        input.value == "UCI-11320" ||
+        input.value == "UCI-11520" ||
+        input.value == "Rothman-2697049") {
+      // these are references to distiributions
+    } else {
+      for (const sv of input.value.split(" ")) {
+        if (!is_float(sv) ||
+            Number.parseFloat(sv) > 1 ||
+            Number.parseFloat(sv) < 0) {
+          input.classList.add("invaid");
+          invalid_inputs.add(input);
+        }
       }
     }
   } else {

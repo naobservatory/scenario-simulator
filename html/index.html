@@ -564,6 +564,15 @@ function daily_incidence_to_weekly_incidence(
   return weekly_incidence;
 }
 
+// Estimate the chance that an individual is currently detectibly sick?  Since
+// we assume people are sick for detectable_days, at a steady state this would
+// be daily_incidence*detectable_days.  But just like with
+// daily_incidence_to_weekly_incidence we need to take into account that more
+// people are getting sick over time, and work back from todays incidence.
+//
+// Note that this breaks down when we leave the very early days of the
+// epidemic, since it just adds probabilities.  But this whole simulator is
+// only intended to cover the low cumulative incidence regime.
 function individual_probability_sick(
     daily_incidence, detectable_days, growth_factor) {
   let individual_probability_sick_accumulator = 0;

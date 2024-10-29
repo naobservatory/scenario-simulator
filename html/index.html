@@ -372,8 +372,8 @@ how many people are contributing?
 <tr><td colspan=4>
   <table>
   <tr>
-  <td><input type=radio name=sequencing id=nx25b><label for=nx25b>NovaSeq X 25B</label>
-  <td><input type=radio name=sequencing id=nx10b><label for=nx10b>NovaSeq X 10B</label>
+  <td><input type=radio name=sequencing id=nx25b><label for=nx25b>NovaSeq X 25B
+  Lane</label>
   <td><input type=radio name=sequencing id=aviti><label for=aviti>Element Aviti 2x150</label>
   <tr>
   <td><input type=radio name=sequencing id=ns4><label for=ns4>NovaSeq 6000 S4</label>
@@ -810,18 +810,8 @@ window.simulate_one = simulate_one;
 
   nx25b.onclick = function() {
     read_length.value=300;
-    run_cost.value="23,000";
-    sample_depth.value="2.5e10";
-    processing_delay.value=4;
-    sample_weekly();
-    sequence_weekly();
-    set_custom_scenario();
-  };
-
-  nx10b.onclick = function() {
-    read_length.value=300;
-    run_cost.value="13,000";
-    sample_depth.value="1e10";
+    run_cost.value="2,000";
+    sample_depth.value="2.5e9";
     processing_delay.value=4;
     sample_weekly();
     sequence_weekly();
@@ -1049,9 +1039,9 @@ window.simulate_one = simulate_one;
   scenario_ww_c.onclick = function() {
     ww_rothman_scv2.onclick();
     ww_rothman_scv2.checked = true;
-    nx10b.onclick();
-    nx10b.checked = true;
-    sites.value = 1;
+    nx25b.onclick();
+    nx25b.checked = true;
+    sites.value = 6;
     min_observations.value = 2;
     simulation_label.value = "Covid WW $1M";
     auto_label = simulation_label.value;
@@ -1079,9 +1069,9 @@ window.simulate_one = simulate_one;
   scenario_ww_f.onclick = function() {
     ww_flu_a_mu.onclick();
     ww_flu_a_mu.checked = true;
-    nx10b.onclick();
-    nx10b.checked = true;
-    sites.value = 1;
+    nx25b.onclick();
+    nx25b.checked = true;
+    sites.value = 6;
     min_observations.value = 2;
     simulation_label.value = "Flu WW $1M";
     auto_label = simulation_label.value;

@@ -576,12 +576,17 @@ function average(arr) {
   return arr.reduce((a,b) => a+b) / arr.length;
 }
 
+// Select an element of arr uniformly at random
+function uniform_sample(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 function simulate_average_over_n_draws(arr, n) {
-  let v = 0;
+  const sim = [];
   for (let i = 0; i < n; i++) {
-    v += arr[Math.floor(Math.random() * arr.length)];
+    sim.push(uniform_sample(arr));
   }
-  return v/n;
+  return average(sim);
 }
 
 // Given some number of sick people and a list of equiprobable relative

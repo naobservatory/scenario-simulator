@@ -550,6 +550,78 @@ function inverse_transform_sample(cdf) {
   throw new Error("failed to draw from cdf");
 }
 
+// Given today's incidence, what was the incidence over the past week?  Note
+// that this is not just daily_incidence*7 because exponential growth means
+// more people are getting sick on each successive day.
+function daily_incidence_to_weekly_incidence(
+    daily_incidence, growth_factor) {
+  let weekly_incidence = 0;
+  let effective_incidence = daily_incidence;
+  for (let i = 0; i < 7; i++) {
+    weekly_incidence += effective_incidence;
+    effective_incidence /= growth_factor;
+  }
+  return weekly_incidence;
+}
+
+// Estimate the chance that an individual is currently detectibly sick?  Since
+// we assume people are sick for detectable_days, at a steady state this would
+// be daily_incidence*detectable_days.  But just like with
+// daily_incidence_to_weekly_incidence we need to take into account that more
+// people are getting sick over time, and work back from todays incidence.
+//
+// Note that this breaks down when we leave the very early days of the
+// epidemic, since it just adds probabilities.  But this whole simulator is
+// only intended to cover the low cumulative incidence regime.
+function individual_probability_sick(
+    daily_incidence, detectable_days, growth_factor) {
+  let individual_probability_sick_accumulator = 0;
+  let effective_incidence = daily_incidence;
+  for (let i = 0; i < detectable_days; i++) {
+    individual_probability_sick_accumulator += effective_incidence;
+    effective_incidence /= growth_factor;
+  }
+  return individual_probability_sick_accumulator;
+}
+
+function average(arr) {
+  return arr.reduce((a,b) => a+b) / arr.length;
+}
+
+// Select an element of arr uniformly at random
+function uniform_sample(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function simulate_average_over_n_draws(arr, n) {
+  const sim = [];
+  for (let i = 0; i < n; i++) {
+    sim.push(uniform_sample(arr));
+  }
+  return average(sim);
+}
+
+// Given some number of sick people and a list of equiprobable relative
+// abundances we might see from a sick person, return the relative abundance we
+// would expect to see in a sample consisting only of these sick people.
+function simulate_ra_sick(sample_sick, ra_sicks) {
+  if (sample_sick == 0) {
+    return 0; // not technically true, but unused in this case.
+  } else if (ra_sicks.length == 1) {
+    // If there's only one option, no need to simulate.
+    return ra_sicks[0];
+  } else if (sample_sick > ra_sicks.length*3) {
+    // If we're sampling a lot of sick people relative to the number of
+    // different shedding levels in our empirical distribution, just average
+    // the possibilities instead of simulating, since simulating will be slow
+    // for very minimal increases in accuracy.
+    return average(ra_sicks);
+  } else {
+    // Actually simulate.
+    return simulate_average_over_n_draws(ra_sicks, sample_sick);
+  }
+}
+
 function simulate_one() {
   let day = 0;
   let population = 1e10;
@@ -657,71 +729,38 @@ function simulate_one() {
     cumulative_incidence *= growth_factor;
 
     for (let site = 0; site < n_sites; site++) {
-      const day_of_week = (day + site_infos[site].day_offset) % 7;
+      const site_info = site_infos[site];
+      const day_of_week = (day + site_info.day_offset) % 7;
       if (should_sample[day_of_week]) {
         const daily_incidence = cumulative_incidence * r;
-        let individual_probability_sick = 0;
-        let effective_incidence = daily_incidence;
-        for (let i = 0; i < detectable_days; i++) {
-          individual_probability_sick += effective_incidence;
-          effective_incidence /= growth_factor;
-        }
-        const n_sick = poisson(n_sample_population * individual_probability_sick);
-        site_infos[site].sample_sick += n_sick;
-        site_infos[site].sample_total += n_sample_population;
-
-        // Compute weekly incidence from daily incidence
-        let weekly_incidence = 0;
-        effective_incidence = daily_incidence;
-        for (let i = 0; i < 7; i++) {
-           weekly_incidence += effective_incidence;
-           effective_incidence /= growth_factor;
-        }
-        site_infos[site].sample_weekly_incidences.push(weekly_incidence);
+        site_info.sample_sick += poisson(
+            n_sample_population *
+            individual_probability_sick(
+                daily_incidence, detectable_days, growth_factor));
+        site_info.sample_total += n_sample_population;
+        site_info.sample_weekly_incidences.push(
+            daily_incidence_to_weekly_incidence(
+                daily_incidence, growth_factor));
       }
 
       let relative_abundance = 0;
       if (should_sequence[day_of_week]) {
         if (ra_sicks) {
-          let ra_sick = 0;
-          if (site_infos[site].sample_sick == 0) {
-            ra_sick = 0; // not technically true, but unused in this case.
-          } else if (ra_sicks.length == 1) {
-            // If there's only one option, no need to simulate.
-            ra_sick = ra_sicks[0];
-          } else if (site_infos[site].sample_sick > ra_sicks.length*3) {
-            // If we're sampling a lot of sick people, just average the
-            // possibilities instead of simulating, since simulating
-            // will be slow and not help much.
-            for (let i = 0; i < ra_sicks.length; i++) {
-              ra_sick += ra_sicks[i];
-            }
-            ra_sick = ra_sick / ra_sicks.length;
-          } else {
-            // Actually simulate.
-            for (let i = 0; i < site_infos[site].sample_sick; i++) {
-              ra_sick += ra_sicks[Math.floor(Math.random() * ra_sicks.length)];
-            }
-            ra_sick = ra_sick / site_infos[site].sample_sick;
-          }
-
           relative_abundance =
-              site_infos[site].sample_sick /
-              site_infos[site].sample_total *
-              ra_sick;
+              site_info.sample_sick / site_info.sample_total *
+              simulate_ra_sick(site_info.sample_sick, ra_sicks);
         } else if (rai1pct) {
-          const sample_weekly_incidences = site_infos[site].sample_weekly_incidences;
-          const average_weekly_incidence = sample_weekly_incidences.reduce((a,b) => a+b) /
-                                           sample_weekly_incidences.length;
-          relative_abundance = average_weekly_incidence / 0.01 * rai1pct;
+          relative_abundance = average(
+              site_info.sample_weekly_incidences) / 0.01 * rai1pct;
         } else {
           throw new Error("rai1pct and ra_sicks can't both be unset");
         }
-        const probability_read_is_useful = relative_abundance * fraction_useful_reads;
+        const probability_read_is_useful =
+            relative_abundance * fraction_useful_reads;
 
-        site_infos[site].sample_sick = 0;
-        site_infos[site].sample_total = 0;
-        site_infos[site].sample_weekly_incidences = [];
+        site_info.sample_sick = 0;
+        site_info.sample_total = 0;
+        site_info.sample_weekly_incidences = [];
 
         // If this is zero it means that we didn't have any sick
         // people in our sample, so we don't need to check if we

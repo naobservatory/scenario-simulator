@@ -479,12 +479,9 @@ and having more time to respond.
 
 <!-- exports the variable coverage_distribution -->
 <script src="coverage-distribution.js"></script>
-<script>
-  let coverage_distribution_genome_length = 0
-  for (obs in coverage_distribution) {
-    coverage_distribution_genome_length += coverage_distribution[obs];
-  }
 </script>
+<!-- exports the variable ww_rai1pct -->
+<script src="ww-rai1pct.js"></script>
 
 <script type=module>
 import poisson from 'https://cdn.jsdelivr.net/gh/stdlib-js/random-base-poisson@esm/index.mjs';
@@ -537,6 +534,22 @@ function get_inputs_biased(input, input_sigma) {
   return adjusted_values;
 }
 
+function inverse_transform_sample(cdf) {
+  let total_weight = 0
+  for (const k in cdf) {
+    total_weight += cdf[k];
+  }
+  const target = Math.random() * total_weight;
+  let observed_so_far = 0;
+  for (const k in cdf) {
+    observed_so_far += cdf[k];
+    if (observed_so_far >= target) {
+      return k;
+    }
+  }
+  throw new Error("failed to draw from cdf");
+}
+
 function simulate_one() {
   let day = 0;
   let population = 1e10;
@@ -546,8 +559,15 @@ function simulate_one() {
 
   let detectable_days = get_input_sigma(shedding_duration,
                                         sigma_shedding_duration);
-  const ra_sicks = get_inputs_biased(shedding_values, sigma_shedding_values);
 
+  let ra_sicks = null;
+  let rai1pct = null;
+  if (shedding_values.value in ww_rai1pct) {
+    rai1pct = Number.parseFloat(
+        inverse_transform_sample(ww_rai1pct[shedding_values.value]));
+  } else {
+    ra_sicks = get_inputs_biased(shedding_values, sigma_shedding_values);
+  }
   let n_min_observations = get_input(min_observations);
   let observations = 0;
 
@@ -556,10 +576,18 @@ function simulate_one() {
   for (let site = 0; site < n_sites; site++) {
     site_infos.push({
       // Since we last sequenced, we've built up some samples for
-      // sequencing.  How many sick people are in that sample, out of
-      // how many total people?
+      // sequencing.
+
+      // How many sick people are in these samples collectively, out of how
+      // many total people?  Only used when estimating relative abundance from
+      // the number of sick people.
       sample_sick: 0,
       sample_total: 0,
+
+      // Each day we sampled, what was the weekly incidence?  Only used when
+      // estimating relative abundance from rai1pct.
+      sample_weekly_incidences: [],
+
       // Which day the epidemic starts relative to the sampling and
       // sequencing schedules is arbitrary, but does have a large
       // effect on the range of outcomes: if you're sequencing weekly
@@ -594,20 +622,11 @@ function simulate_one() {
   // To use it, first we pick an element in proportion to its frequency, then
   // adjust for how the current scenario differs from SARS-CoV-2 + Wastewater +
   // Illumina.
-
-  const target = Math.random() * coverage_distribution_genome_length;
-  let observed_so_far = 0;
-  let selected_raw_fraction_useful_reads = undefined;
-  for (const possible_raw_fraction_useful_reads in coverage_distribution) {
-    observed_so_far += coverage_distribution[possible_raw_fraction_useful_reads];
-    if (observed_so_far >= target) {
-      selected_raw_fraction_useful_reads =
-          Number.parseFloat(possible_raw_fraction_useful_reads);
-      break;
-    }
-  }
-  if (selected_raw_fraction_useful_reads === undefined) {
-    throw new Error("failed to select fraction_useful_reads");
+  const selected_raw_fraction_useful_reads = Number.parseFloat(
+      inverse_transform_sample(coverage_distribution));
+  let coverage_distribution_genome_length = 0;
+  for (const obs in coverage_distribution) {
+    coverage_distribution_genome_length += coverage_distribution[obs];
   }
 
   let fraction_useful_reads = selected_raw_fraction_useful_reads *
@@ -650,38 +669,59 @@ function simulate_one() {
         const n_sick = poisson(n_sample_population * individual_probability_sick);
         site_infos[site].sample_sick += n_sick;
         site_infos[site].sample_total += n_sample_population;
+
+        // Compute weekly incidence from daily incidence
+        let weekly_incidence = 0;
+        effective_incidence = daily_incidence;
+        for (let i = 0; i < 7; i++) {
+           weekly_incidence += effective_incidence;
+           effective_incidence /= growth_factor;
+        }
+        site_infos[site].sample_weekly_incidences.push(weekly_incidence);
       }
 
+      let relative_abundance = 0;
       if (should_sequence[day_of_week]) {
-        let ra_sick = 0;
-        if (site_infos[site].sample_sick == 0) {
-          ra_sick = 0; // not technically true, but unused in this case.
-        } else if (ra_sicks.length == 1) {
-          // If there's only one option, no need to simulate.
-          ra_sick = ra_sicks[0];
-        } else if (site_infos[site].sample_sick > ra_sicks.length*3) {
-          // If we're sampling a lot of sick people, just average the
-          // possibilities instead of simulating, since simulating
-          // will be slow and not help much.
-          for (let i = 0; i < ra_sicks.length; i++) {
-            ra_sick += ra_sicks[i];
+        if (ra_sicks) {
+          let ra_sick = 0;
+          if (site_infos[site].sample_sick == 0) {
+            ra_sick = 0; // not technically true, but unused in this case.
+          } else if (ra_sicks.length == 1) {
+            // If there's only one option, no need to simulate.
+            ra_sick = ra_sicks[0];
+          } else if (site_infos[site].sample_sick > ra_sicks.length*3) {
+            // If we're sampling a lot of sick people, just average the
+            // possibilities instead of simulating, since simulating
+            // will be slow and not help much.
+            for (let i = 0; i < ra_sicks.length; i++) {
+              ra_sick += ra_sicks[i];
+            }
+            ra_sick = ra_sick / ra_sicks.length;
+          } else {
+            // Actually simulate.
+            for (let i = 0; i < site_infos[site].sample_sick; i++) {
+              ra_sick += ra_sicks[Math.floor(Math.random() * ra_sicks.length)];
+            }
+            ra_sick = ra_sick / site_infos[site].sample_sick;
           }
-          ra_sick = ra_sick / ra_sicks.length;
-        } else {
-          // Actually simulate.
-          for (let i = 0; i < site_infos[site].sample_sick; i++) {
-            ra_sick += ra_sicks[Math.floor(Math.random() * ra_sicks.length)];
-          }
-          ra_sick = ra_sick / site_infos[site].sample_sick;
-        }
 
-        const probability_read_is_useful =
+          relative_abundance =
               site_infos[site].sample_sick /
               site_infos[site].sample_total *
-              ra_sick * fraction_useful_reads;
+              ra_sick;
+        } else if (rai1pct) {
+          const sample_weekly_incidences = site_infos[site].sample_weekly_incidences;
+          const average_weekly_incidence = sample_weekly_incidences.reduce((a,b) => a+b) /
+                                           sample_weekly_incidences.length;
+          relative_abundance = average_weekly_incidence / 0.01 * rai1pct;
+        } else {
+          throw new Error("rai1pct and ra_sicks can't both be unset");
+        }
+        const probability_read_is_useful = relative_abundance * fraction_useful_reads;
 
         site_infos[site].sample_sick = 0;
         site_infos[site].sample_total = 0;
+        site_infos[site].sample_weekly_incidences = [];
 
         // If this is zero it means that we didn't have any sick
         // people in our sample, so we don't need to check if we
@@ -1254,12 +1294,8 @@ function validate(input) {
   input.classList.remove("invalid");
   invalid_inputs.delete(input);
   if (input == shedding_values) {
-    if (input.value == "MU-11320" ||
-        input.value == "MU-11520" ||
-        input.value == "UCI-11320" ||
-        input.value == "UCI-11520" ||
-        input.value == "Rothman-2697049") {
-      // these are references to distiributions
+    if (input.value in ww_rai1pct) {
+      // these are references to distributions
     } else {
       for (const sv of input.value.split(" ")) {
         if (!is_float(sv) ||

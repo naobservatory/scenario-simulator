@@ -550,6 +550,9 @@ function inverse_transform_sample(cdf) {
   throw new Error("failed to draw from cdf");
 }
 
+// Given today's incidence, what was the incidence over the past week?  Note
+// that this is not just daily_incidence*7 because exponential growth means
+// more people are getting sick on each successive day.
 function daily_incidence_to_weekly_incidence(
     daily_incidence, growth_factor) {
   let weekly_incidence = 0;

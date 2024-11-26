@@ -403,6 +403,8 @@ quality; see "low-quality fragments?" above.
       <td><input type=checkbox id=sequencing_s>
       <td><input type=checkbox id=sequencing_u>
   </table>
+<tr><td>Repeat frequency (weeks):<td>
+    <input type=text id=sequencing_weeks value=1>
 <tr><td>Processing delay (days):
   <td><input type=text id=processing_delay value=1>
 <tr><td colspan=4 class=note>How long does it take from collecting a
@@ -666,7 +668,11 @@ function simulate_one() {
       // then the luckiest timing will flag it about a week before the
       // unluckiest.  Model the epidemic as observed by each site as
       // starting on a random day of the week.
-      day_offset: Math.floor(Math.random() * 7)})
+      day_offset: Math.floor(Math.random() * 7),
+
+      // Same deal as day_offset, but for less-than-weekly sequencing.
+      week_offset: Math.floor(Math.random() * 52),
+    });
   }
 
   let bp_genome_length = get_input(genome_length);
@@ -724,8 +730,10 @@ function simulate_one() {
     should_sequence.push(is_checked("sequencing_", day_of_week));
   }
 
+  const n_sequencing_weeks = get_input(sequencing_weeks);
   while (true) {
     day++;
+    const week_number = Math.floor(day / 7);
     cumulative_incidence *= growth_factor;
 
     for (let site = 0; site < n_sites; site++) {
@@ -744,7 +752,8 @@ function simulate_one() {
       }
 
       let relative_abundance = 0;
-      if (should_sequence[day_of_week]) {
+      if (should_sequence[day_of_week] &&
+          (site_info.week_offset + week_number) % n_sequencing_weeks == 0) {
         if (ra_sicks) {
           relative_abundance =
               site_info.sample_sick / site_info.sample_total *
@@ -817,6 +826,7 @@ window.simulate_one = simulate_one;
     sequencing_f.checked = false;
     sequencing_s.checked = false;
     sequencing_u.checked = false;
+    sequencing_weeks.value = 1;
   }
 
   function sequence_daily() {
@@ -827,6 +837,7 @@ window.simulate_one = simulate_one;
     sequencing_f.checked = true;
     sequencing_s.checked = false;
     sequencing_u.checked = false;
+    sequencing_weeks.value = 1;
   }
 
   function set_custom_scenario() {

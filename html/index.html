@@ -1230,7 +1230,8 @@ function update_cost() {
         (1 + (get_input(overhead) / 100)) *
         52 *
         (n_samples_weekly * get_input(sample_cost) +
-         n_sequences_weekly * get_input(run_cost)));
+         n_sequences_weekly * get_input(run_cost) /
+         get_input(sequencing_weeks)));
 
   update_hash();
 }

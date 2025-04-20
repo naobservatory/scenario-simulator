@@ -650,7 +650,7 @@ function simulate_one() {
     ra_sicks = get_inputs_biased(shedding_values, sigma_shedding_values);
   }
   let n_min_observations = get_input(min_observations);
-  let require_cross_sample_observations = get_input(cross_sample_observations);
+  let require_cross_sample_observations = cross_sample_observations.checked;
   let observations = 0;
 
   let n_sites = get_input(sites);

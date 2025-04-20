@@ -418,6 +418,13 @@ bioinformatic processing.
 happening when a particular portion of the genome has been observed
 some number of times.  Using a higher number here corresponds to
 requiring more certainty before raising an alarm.
+<tr><td>Cross-Sample Observations<td><input
+    type=checkbox id=cross_sample_observations checked>
+<tr><td colspan=4 class=note>Do each of the required minimum observations need
+to come from separate samples?  Seeing something in multiple samples
+is generally stronger evidence that it's real, because multiple
+observations in the same sample could come from a sequencing
+artifact.
 <tr><td>Sites:<td><input type=text id=sites value=1>
 <tr><td colspan=4 class=note>In this model you can parallelize across
 multiple sites, each of which works exactly the same way.  As a rough
@@ -643,6 +650,7 @@ function simulate_one() {
     ra_sicks = get_inputs_biased(shedding_values, sigma_shedding_values);
   }
   let n_min_observations = get_input(min_observations);
+  let require_cross_sample_observations = get_input(cross_sample_observations);
   let observations = 0;
 
   let n_sites = get_input(sites);
@@ -775,7 +783,16 @@ function simulate_one() {
         // people in our sample, so we don't need to check if we
         // observed any useful reads.
         if (probability_read_is_useful > 0) {
-          observations += poisson(n_reads * probability_read_is_useful);
+          const this_sample_observations = poisson(
+              n_reads * probability_read_is_useful);
+          if (require_cross_sample_observations) {
+            if (this_sample_observations > 0) {
+              observations++;
+            }
+          } else {
+            observations += this_sample_observations;
+          }
+          
           if (observations >= n_min_observations) {
             return cumulative_incidence * v_processing_delay_factor;
           }

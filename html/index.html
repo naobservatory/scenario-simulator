@@ -1106,7 +1106,8 @@ window.simulate_one = simulate_one;
     nx25b.onclick();
     nx25b.checked = true;
     sites.value = 6;
-    min_observations.value = 2;
+    min_sample_observations.value = 2;
+    min_read_observations.value = 2;
     simulation_label.value = "Covid WW $1M";
     auto_label = simulation_label.value;
     scenario_ww_c.checked = true;
@@ -1121,7 +1122,8 @@ window.simulate_one = simulate_one;
     nanopore.onclick();
     nanopore.checked = true;
     sites.value = 2;
-    min_observations.value = 2;
+    min_sample_observations.value = 2;
+    min_read_observations.value = 2;
     simulation_label.value = "Covid Nasal Nanopore $1M";
     auto_label = simulation_label.value;
     scenario_ns_c_1m.checked = true;
@@ -1136,7 +1138,8 @@ window.simulate_one = simulate_one;
     nx25b.onclick();
     nx25b.checked = true;
     sites.value = 6;
-    min_observations.value = 2;
+    min_sample_observations.value = 2;
+    min_read_observations.value = 2;
     simulation_label.value = "Flu WW $1M";
     auto_label = simulation_label.value;
     scenario_ww_f.checked = true;
@@ -1151,7 +1154,8 @@ window.simulate_one = simulate_one;
     nanopore.onclick();
     nanopore.checked = true;
     sites.value = 2;
-    min_observations.value = 2;
+    min_sample_observations.value = 2;
+    min_read_observations.value = 2;
     simulation_label.value = "Flu Nasal Nanopore $1M";
     auto_label = simulation_label.value;
     scenario_ns_f_1m.checked = true;
@@ -1377,7 +1381,8 @@ function validate(input) {
         (input == sample_depth && get_input(input) < 1e3) ||
         (input == run_cost && get_input(input) < 0) ||
         (input == processing_delay && get_input(input) < 0.01) ||
-        (input == min_observations && get_input(input) < 1) ||
+        (input == min_read_observations && get_input(input) < 1) ||
+        (input == min_sample_observations && get_input(input) < 1) ||
         (input == sites && get_input(input) < 1) ||
         (input == overhead && get_input(input) < 0) ||
         (input == simulations && get_input(input) < 1)) {

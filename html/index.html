@@ -413,18 +413,24 @@ lab time to prepare the sample for sequencing, waiting for your sample
 to get a turn on the sequencer, time on the sequencer, and
 bioinformatic processing.
 <tr><th colspan=4>Global
-<tr><td>Minimum Observations:<td><input type=text id=min_observations value=2>
+<tr><td>Observe samples?<td><input
+    type=checkbox id=observe_samples checked>
 <tr><td colspan=4 class=note>This model simulates detection as
 happening when a particular portion of the genome has been observed
-some number of times.  Using a higher number here corresponds to
-requiring more certainty before raising an alarm.
-<tr><td>Require Cross-Sample Observations<td><input
-    type=checkbox id=cross_sample_observations checked>
-<tr><td colspan=4 class=note>Do each of the required minimum observations need
-to come from separate samples?  Seeing something in multiple samples
-is generally stronger evidence that it's real, because multiple
+mple some number of times.  When this box is checked we count an
+"observation" as a sample with at least one read matching that
+portion, while when it's unchecked each read matching the portion
+counts as an "observation".
+<p>
+Seeing something in multiple samples
+is stronger evidence that it's real, because multiple
 observations in the same sample could come from a sequencing
 artifact.
+<tr><td>Minimum Observations:<td><input type=text id=min_observations value=2>
+<tr><td colspan=4 class=note>How many observations (samples or reads,
+see above) do you need before raising the alarm?  A higher number
+here corresponds to requiring more certainty, and so fewer false
+alarms but flagging at a higher cumulative incidence.
 <tr><td>Sites:<td><input type=text id=sites value=1>
 <tr><td colspan=4 class=note>In this model you can parallelize across
 multiple sites, each of which works exactly the same way.  As a rough
@@ -650,7 +656,7 @@ function simulate_one() {
     ra_sicks = get_inputs_biased(shedding_values, sigma_shedding_values);
   }
   let n_min_observations = get_input(min_observations);
-  let require_cross_sample_observations = cross_sample_observations.checked;
+  let bool_observe_samples = observe_samples.checked;
   let observations = 0;
 
   let n_sites = get_input(sites);
@@ -785,7 +791,7 @@ function simulate_one() {
         if (probability_read_is_useful > 0) {
           const this_sample_observations = poisson(
               n_reads * probability_read_is_useful);
-          if (require_cross_sample_observations) {
+          if (bool_observe_samples) {
             if (this_sample_observations > 0) {
               observations++;
             }

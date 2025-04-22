@@ -405,6 +405,8 @@ quality; see "low-quality fragments?" above.
   </table>
 <tr><td>Repeat frequency (weeks):<td>
     <input type=text id=sequencing_weeks value=1>
+<tr><td colspan=4 class=note>Simulate only sequencing every N weeks.
+    Positive integers only.
 <tr><td>Processing delay (days):
   <td><input type=text id=processing_delay value=1>
 <tr><td colspan=4 class=note>How long does it take from collecting a
@@ -1364,6 +1366,9 @@ function validate(input) {
         (input == processing_delay && get_input(input) < 0.01) ||
         (input == min_observations && get_input(input) < 1) ||
         (input == sites && get_input(input) < 1) ||
+        (input == sequencing_weeks && (
+           get_input(input) < 1 ||
+           get_input(input) != Math.round(get_input(input)))) ||
         (input == overhead && get_input(input) < 0) ||
         (input == simulations && get_input(input) < 1)) {
       input.classList.add("invalid");

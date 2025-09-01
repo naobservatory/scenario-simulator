@@ -292,7 +292,7 @@ input[type=text] {
 <tr><td>Genome length (bp):<td><input type=text id=genome_length>
 <tr><td colspan=4>
   <input type=radio name=sampling
-         id=ww_rothman_scv2><label for=ww_rothman_scv2>SARS-CoV-2 in Wastewater 
+         id=ww_rothman_scv2><label for=ww_rothman_scv2>SARS-CoV-2 in Wastewater
          with Rothman et al. 2021 Sequencing</label>
          (<a href="https://www.medrxiv.org/content/10.1101/2023.12.22.23300450v3">source</a>)<br>
   <input type=radio name=sampling
@@ -430,11 +430,16 @@ the relevant genome portion?
 <tr><td colspan=4 class=note>Normally we need to see a specific portion of
     the genome, but if you're modeling how sensitive MGS is as a tool for
     flagging when something known first appears in a new sewershed you can
-    check this box to count reads aligning anywhere along the genome.  This
-    modeling is correct to the extent that a read anywhere along the genome
-    really would be concerning. On the other hand, for pathogens (ex: polio)
-    with very high sequence similarity to other less-concerning pathogen
-    species, this will overestimate of sensitivity.
+    check this box to count reads aligning anywhere along the genome.
+<tr class=hidden id=fraction_actionable_row><td>Percentage
+    of actionable genome reads<td><input
+    type=text id=fraction_of_actionable_genome_reads value=90>
+<tr class=hidden id=fraction_actionable_text><td colspan=4 class=note>In
+    most pathogens, some portion of reads will be actionable (clearly from a
+    concerning and surprising species) while others will not be (ex: many reads
+    from polio will not be distinguishable as polio specifically, as opposed to
+    other much less-concerning enteroviruses).  What fraction of reads would be
+    actionable?
 <tr><td>Sites:<td><input type=text id=sites value=1>
 <tr><td colspan=4 class=note>In this model you can parallelize across
 multiple sites, each of which works exactly the same way.  As a rough
@@ -741,7 +746,7 @@ function simulate_one() {
   if (count_matches_along_whole_genome.checked) {
     // We're using a reference-based approach where we can get information from
     // reads aligning anywhere along the genome.
-    fraction_useful_reads = 1;
+    fraction_useful_reads = get_input(fraction_of_actionable_genome_reads) / 100;
   }
 
   let v_processing_delay_factor = Math.pow(
@@ -806,7 +811,7 @@ function simulate_one() {
             sample_observations++;
           }
           read_observations += this_sample_observations;
-          
+
           if (sample_observations >= n_min_sample_observations &&
               read_observations >= n_min_read_observations) {
             return cumulative_incidence * v_processing_delay_factor;
@@ -1068,6 +1073,10 @@ window.simulate_one = simulate_one;
     set_custom_scenario();
   }
 
+  count_matches_along_whole_genome.onclick = function() {
+    update_fraction_actionable_visibility();
+  }
+
   ww_rothman_scv2.onclick = function() {
     select_ww();
     select_scv2();
@@ -1282,6 +1291,13 @@ function update_direct_flaggable_impact() {
       direct_flaggable.checked;
 }
 
+function update_fraction_actionable_visibility() {
+  fraction_actionable_row.classList.toggle(
+      "hidden", !count_matches_along_whole_genome.checked);
+  fraction_actionable_text.classList.toggle(
+      "hidden", !count_matches_along_whole_genome.checked);
+}
+
 function validate_all_inputs() {
   for (const input of document.querySelectorAll("input")) {
     if (input.type == "text") {
@@ -1290,6 +1306,7 @@ function validate_all_inputs() {
   }
   validate(shedding_values);
   update_direct_flaggable_impact();
+  update_fraction_actionable_visibility();
   update_run_enablement();
 }
 

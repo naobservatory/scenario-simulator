@@ -424,7 +424,17 @@ total.
 the relevant genome portion?
 <tr><td>Minimum Reads:<td><input type=text id=min_read_observations value=2>
 <tr><td colspan=4 class=note>How many total reads, across all samples,
-need to match the relevant genome portion?
+    need to match the relevant genome portion?
+<tr><td>Count matches along whole genome:<td><input type=checkbox
+    id=count_matches_along_whole_genome>
+<tr><td colspan=4 class=note>Normally we need to see a specific portion of
+    the genome, but if you're modeling how sensitive MGS is as a tool for
+    flagging when something known first appears in a new sewershed you can
+    check this box to count reads aligning anywhere along the genome.  This
+    modeling is correct to the extent that a read anywhere along the genome
+    really would be concerning. On the other hand, for pathogens (ex: polio)
+    with very high sequence similarity to other less-concerning pathogen
+    species, this will overestimate of sensitivity.
 <tr><td>Sites:<td><input type=text id=sites value=1>
 <tr><td colspan=4 class=note>In this model you can parallelize across
 multiple sites, each of which works exactly the same way.  As a rough
@@ -725,6 +735,12 @@ function simulate_one() {
   if (direct_flaggable.checked) {
     // The user has asked us to skip the calculation, and is providing
     // an adjusted number in the relative abundance field.
+    fraction_useful_reads = 1;
+  }
+
+  if (count_matches_along_whole_genome.checked) {
+    // We're using a reference-based approach where we can get information from
+    // reads aligning anywhere along the genome.
     fraction_useful_reads = 1;
   }
 

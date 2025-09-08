@@ -474,6 +474,7 @@ number of times, and display the results in a chart below.
 
 <button id=run_simulation disabled>Run</button>
 <button id=clear class=hidden>Clear</button>
+<button id=export_button class=hidden>Export</button>
 
 <div id=simulation_status class=hidden>
   <div id=simulation_status_inner>
@@ -1445,6 +1446,8 @@ function get_input(input) {
 
 let chart = null;
 clear.onclick = function() {
+  clear.classList.add("hidden");
+  export_button.classList.add("hidden");
   saved_outcomes.length = 0;
   if (chart) {
     chart.clearChart();
@@ -1452,6 +1455,38 @@ clear.onclick = function() {
   table_element.innerHTML = "";
   table_div.classList.add("hidden");
   update_hash();
+}
+
+export_button.onclick = function() {
+  let out = "percentile";
+
+  for (const saved_outcome of saved_outcomes) {
+    out += "\t" + saved_outcome.label;
+  }
+  out += "\n";
+
+  for (let i = 0; i < 100; i++) {
+    out += i;
+    for (const saved_outcome of saved_outcomes) {
+      out += "\t" + saved_outcome.percentile_outcomes[i];
+    }
+    out += "\n";
+  }
+
+  // Create blob and download link
+  const blob = new Blob([out], { type: 'text/tab-separated-values' });
+  const url = URL.createObjectURL(blob);
+
+  // Create temporary anchor element and trigger download
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nao_simulation.tsv';
+  document.body.appendChild(a);
+  a.click();
+
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function add_to_chart(outcomes) {
@@ -1470,6 +1505,7 @@ function add_to_chart(outcomes) {
 
 function draw_chart() {
   clear.classList.remove("hidden");
+  export_button.classList.remove("hidden");
   table_div.classList.remove("hidden");
 
   const data = [["Percentile"]];

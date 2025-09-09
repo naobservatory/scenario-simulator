@@ -178,8 +178,6 @@ class BiosurveillanceSimulator:
                 'sample_sick': 0,
                 'sample_total': 0,
                 'sample_weekly_incidences': [],
-                'day_offset': self.rng.integers(0, 7),
-                'week_offset': self.rng.integers(0, 52)
             })
 
         # Processing delay factor

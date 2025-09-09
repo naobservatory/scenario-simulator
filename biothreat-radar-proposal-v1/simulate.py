@@ -44,8 +44,8 @@ simulation_params = dict(
     # How deeply do we sequence samples from each source, on a daily basis?
     sample_depths = [
         0,   # NWSS
-        0,    # Swabs
-        100e9,  # Triturators
+        100e9,    # Swabs
+        0,  # Triturators
         0,   # Individual Planes
     ],
     sigma_shedding_values=0.05,
